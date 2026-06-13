@@ -236,6 +236,7 @@ function addPairFromInput() {
 
 function fmtPrice(p) {
   if (p==null) return "-";
+  if (p<0.001) return p.toFixed(6);
   if (p<1) return p.toFixed(4);
   if (p<100) return p.toFixed(2);
   return p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
