@@ -319,7 +319,7 @@ function getJSON(url) {
       } else { reject(new Error("HTTP " + xhr.status)); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
-    xhr.timeout = 10000;
+    xhr.timeout = 30000;
     xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send();
   });
