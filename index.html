@@ -21,7 +21,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .popular-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #222236; background: transparent; color: #666; cursor: pointer; font-size: 12px; }
 .popular-btn.active { border-color: #00e5a044; color: #00e5a0; background: #00e5a010; }
 .legend { display: flex; gap: 12px; padding: 8px 16px; font-size: 12px; border-bottom: 1px solid #0f0f1c; flex-wrap: wrap; align-items: center; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 14px 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; padding: 14px 16px; }
 .card { background: #0d0d1a; border: 1px solid #12121f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .pair-name { font-weight: 700; font-size: 16px; color: #fff; }
@@ -30,15 +30,18 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .badge { border-radius: 9px; padding: 9px 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .badge-type { font-weight: 800; font-size: 16px; }
 .badge-strength { border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
-.badge-reason { font-size: 11px; opacity: 0.8; }
+.badge-reason { font-size: 11px; opacity: 0.8; width: 100%; margin-top: 2px; }
+.ind-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; }
+.ind-row { display: flex; justify-content: space-between; border-bottom: 1px solid #0f0f1c; padding-bottom: 3px; }
+.ind-label { color: #444; font-size: 11px; }
+.ind-val { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
 .rsi-labels { display: flex; justify-content: space-between; font-size: 11px; color: #555; margin-bottom: 3px; }
 .rsi-track { background: #1a1a2e; border-radius: 4px; height: 6px; overflow: hidden; }
 .rsi-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
 .rsi-desc { display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-top: 2px; }
-.bb-grid { display: flex; flex-direction: column; gap: 4px; }
-.bb-row { display: flex; justify-content: space-between; border-bottom: 1px solid #0f0f1c; padding-bottom: 3px; }
-.bb-label { color: #444; font-size: 11px; }
-.bb-val { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
+.score-bar-wrap { }
+.score-bar-track { background: #1a1a2e; border-radius: 4px; height: 8px; overflow: hidden; margin: 4px 0; }
+.score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
 .hist { border-top: 1px solid #12121f; padding-top: 8px; }
 .hist-label { color: #333; font-size: 10px; margin-bottom: 5px; }
 .hist-row { display: flex; align-items: center; margin-bottom: 3px; font-size: 11px; gap: 8px; }
@@ -61,7 +64,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 <div class="header">
   <div>
     <div class="title">⚡ CryptoSignal</div>
-    <div class="subtitle">BingX リアルタイム RSI x ボリンジャーバンド</div>
+    <div class="subtitle">RSI × BB × MACD × 資金調達率 × OI</div>
   </div>
   <div class="controls">
     <select id="intervalSelect">
@@ -85,26 +88,22 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
   <span style="color:#00e5a0">● BUY</span>
   <span style="color:#ff4d6d">● SELL</span>
   <span style="color:#444466">● HOLD</span>
+  <span style="color:#333;font-size:10px">スコア5指標の総合判定</span>
 </div>
 <div class="grid" id="grid"></div>
-<div class="footer">BingX Public API | 投資判断は自己責任でお願いします</div>
+<div class="footer">BingX API | 投資判断は自己責任でお願いします</div>
 <script>
 var PROXY = "https://bingx-proxy-v83p.onrender.com";
 var POPULAR = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","H-USDT","NIL-USDT","ROSE-USDT"];
-var pairs = ["BTC-USDT","ETH-USDT"];
+var pairs = ["BTC-USDT","SOL-USDT"];
 var timers = {};
 var histories = {};
 var notifEnabled = false;
 var notifPermission = false;
 
-try {
-  var saved = localStorage.getItem("pairs2");
-  if (saved) pairs = JSON.parse(saved);
-} catch(e) {}
+try { var saved = localStorage.getItem("pairs3"); if (saved) pairs = JSON.parse(saved); } catch(e) {}
 
-function savePairs() {
-  try { localStorage.setItem("pairs2", JSON.stringify(pairs)); } catch(e) {}
-}
+function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
 
 function toggleNotif() {
   if (!notifEnabled) {
@@ -112,9 +111,7 @@ function toggleNotif() {
     document.getElementById("notifBtn").textContent = "🔔 通知 ON";
     document.getElementById("notifBtn").classList.add("on");
     showToast("通知ON", "BUY/SELLシグナルをお知らせします", "buy", 2000);
-    if ("Notification" in window) {
-      Notification.requestPermission().then(function(p) { notifPermission = p === "granted"; });
-    }
+    if ("Notification" in window) Notification.requestPermission().then(function(p){ notifPermission = p==="granted"; });
   } else {
     notifEnabled = false;
     document.getElementById("notifBtn").textContent = "🔔 通知 OFF";
@@ -129,185 +126,262 @@ function showToast(pair, message, type, duration) {
   toast.className = "toast " + type;
   toast.innerHTML = "<div class='toast-pair'>⚡ " + pair + "</div><div class='toast-detail'>" + message + "</div>";
   wrap.appendChild(toast);
-  setTimeout(function() {
-    toast.style.animation = "slideOut 0.3s ease forwards";
-    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
-  }, duration);
+  setTimeout(function(){ toast.style.animation="slideOut 0.3s ease forwards"; setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); },300); }, duration);
 }
 
 function fireSignalNotif(sym, signal, price) {
   if (!notifEnabled) return;
   var msg = signal.type + " " + signal.reason + " @ " + fmtPrice(price);
-  showToast(sym.replace("-","/"), msg, signal.type === "BUY" ? "buy" : "sell");
-  if (notifPermission) {
-    try { new Notification("⚡ " + sym.replace("-","/") + " " + signal.type, { body: msg }); } catch(e) {}
-  }
+  showToast(sym.replace("-","/"), msg, signal.type==="BUY"?"buy":"sell");
+  if (notifPermission) { try { new Notification("⚡ "+sym.replace("-","/")+signal.type,{body:msg}); } catch(e){} }
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
+    var ctx = new (window.AudioContext||window.webkitAudioContext)();
+    var osc = ctx.createOscillator(); var gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = signal.type === "BUY" ? 880 : 440;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.start(); osc.stop(ctx.currentTime + 0.5);
-  } catch(e) {}
+    osc.frequency.value = signal.type==="BUY"?880:440;
+    gain.gain.setValueAtTime(0.3,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    osc.start(); osc.stop(ctx.currentTime+0.5);
+  } catch(e){}
 }
 
 function renderPopular() {
   var wrap = document.getElementById("popularBtns");
   var html = "";
-  for (var i = 0; i < POPULAR.length; i++) {
-    var p = POPULAR[i];
-    var active = pairs.indexOf(p) >= 0 ? "active" : "";
-    var label = p.replace("-USDT","");
-    html += "<button class='popular-btn " + active + "' onclick='togglePair(\"" + p + "\")'>" + label + "</button>";
+  for (var i=0;i<POPULAR.length;i++) {
+    var p=POPULAR[i], active=pairs.indexOf(p)>=0?"active":"";
+    html += "<button class='popular-btn "+active+"' onclick='togglePair(\""+p+"\")'>" + p.replace("-USDT","") + "</button>";
   }
   wrap.innerHTML = html;
 }
 
 function togglePair(sym) {
-  var idx = pairs.indexOf(sym);
-  if (idx >= 0) { removePair(sym); }
+  if (pairs.indexOf(sym)>=0) removePair(sym);
   else { pairs.push(sym); savePairs(); renderCard(sym); loadCard(sym); renderPopular(); }
 }
 
 function toggleAdd() {
   var bar = document.getElementById("addBar");
-  if (bar.classList.contains("hidden")) { bar.classList.remove("hidden"); }
-  else { bar.classList.add("hidden"); }
+  if (bar.classList.contains("hidden")) bar.classList.remove("hidden"); else bar.classList.add("hidden");
 }
 
 function addPairFromInput() {
   var input = document.getElementById("pairInput");
   var sym = input.value.toUpperCase().replace("/","-").trim();
   if (!sym) return;
-  if (pairs.indexOf(sym) < 0) { pairs.push(sym); savePairs(); renderCard(sym); loadCard(sym); renderPopular(); }
-  input.value = "";
-  document.getElementById("addBar").classList.add("hidden");
+  if (pairs.indexOf(sym)<0) { pairs.push(sym); savePairs(); renderCard(sym); loadCard(sym); renderPopular(); }
+  input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
 
 function fmtPrice(p) {
-  if (p == null) return "-";
-  if (p < 1) return p.toFixed(4);
-  if (p < 100) return p.toFixed(2);
-  return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (p==null) return "-";
+  if (p<1) return p.toFixed(4);
+  if (p<100) return p.toFixed(2);
+  return p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
 function calcRSI(closes) {
-  var period = 14;
-  if (closes.length < period + 1) return null;
-  var gains = 0, losses = 0;
-  for (var i = closes.length - period; i < closes.length; i++) {
-    var diff = closes[i] - closes[i-1];
-    if (diff > 0) gains += diff; else losses -= diff;
+  var period=14;
+  if (closes.length<period+1) return null;
+  var gains=0,losses=0;
+  for (var i=closes.length-period;i<closes.length;i++) {
+    var diff=closes[i]-closes[i-1];
+    if (diff>0) gains+=diff; else losses-=diff;
   }
-  var ag = gains/period, al = losses/period;
-  if (al === 0) return 100;
-  return parseFloat((100 - 100/(1 + ag/al)).toFixed(1));
+  var ag=gains/period,al=losses/period;
+  if (al===0) return 100;
+  return parseFloat((100-100/(1+ag/al)).toFixed(1));
 }
 
 function calcBB(closes) {
-  var period = 20, mult = 2;
-  if (closes.length < period) return null;
-  var slice = closes.slice(-period);
-  var mean = slice.reduce(function(a,b){return a+b;},0) / period;
-  var std = Math.sqrt(slice.reduce(function(a,b){return a+(b-mean)*(b-mean);},0) / period);
-  return { upper: parseFloat((mean+mult*std).toFixed(4)), middle: parseFloat(mean.toFixed(4)), lower: parseFloat((mean-mult*std).toFixed(4)) };
+  var period=20,mult=2;
+  if (closes.length<period) return null;
+  var slice=closes.slice(-period);
+  var mean=slice.reduce(function(a,b){return a+b;},0)/period;
+  var std=Math.sqrt(slice.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/period);
+  return {upper:parseFloat((mean+mult*std).toFixed(4)),middle:parseFloat(mean.toFixed(4)),lower:parseFloat((mean-mult*std).toFixed(4))};
 }
 
-function getSignal(rsi, bb, price) {
-  if (!rsi || !bb || !price) return { type: "HOLD", reason: "データ不足", strength: "-" };
-  if (rsi < 30 && price <= bb.lower) return { type: "BUY", reason: "RSI過売(" + rsi + ") + BB下限タッチ", strength: "強" };
-  if (rsi < 35 && price < bb.lower) return { type: "BUY", reason: "RSI低水準(" + rsi + ") + BB下限割れ", strength: "中" };
-  if (rsi > 70 && price >= bb.upper) return { type: "SELL", reason: "RSI過買(" + rsi + ") + BB上限タッチ", strength: "強" };
-  if (rsi > 65 && price > bb.upper) return { type: "SELL", reason: "RSI高水準(" + rsi + ") + BB上限超え", strength: "中" };
-  return { type: "HOLD", reason: "RSI: " + rsi + " BB内で推移中", strength: "-" };
+function calcEMA(closes, period) {
+  if (closes.length < period) return null;
+  var k = 2/(period+1);
+  var ema = closes.slice(0,period).reduce(function(a,b){return a+b;},0)/period;
+  for (var i=period;i<closes.length;i++) ema = closes[i]*k + ema*(1-k);
+  return parseFloat(ema.toFixed(4));
+}
+
+function calcMACD(closes) {
+  if (closes.length < 26) return null;
+  var ema12 = calcEMA(closes, 12);
+  var ema26 = calcEMA(closes, 26);
+  if (!ema12 || !ema26) return null;
+  var macdLine = ema12 - ema26;
+  // シグナルライン（MACD直近9本の EMA近似）
+  var macdVals = [];
+  for (var i=closes.length-9;i<closes.length;i++) {
+    var e12 = calcEMA(closes.slice(0,i+1),12);
+    var e26 = calcEMA(closes.slice(0,i+1),26);
+    if (e12&&e26) macdVals.push(e12-e26);
+  }
+  var signal = macdVals.reduce(function(a,b){return a+b;},0)/macdVals.length;
+  return { macd: parseFloat(macdLine.toFixed(4)), signal: parseFloat(signal.toFixed(4)), hist: parseFloat((macdLine-signal).toFixed(4)) };
+}
+
+// 5指標スコアリング: 各指標 -2〜+2点、合計 -10〜+10
+function calcScore(rsi, bb, price, macd, fundingRate, oi, prevOi) {
+  var score = 0;
+  var reasons = [];
+
+  // RSI
+  if (rsi !== null) {
+    if (rsi < 30) { score += 2; reasons.push("RSI過売"); }
+    else if (rsi < 40) { score += 1; reasons.push("RSI低"); }
+    else if (rsi > 70) { score -= 2; reasons.push("RSI過買"); }
+    else if (rsi > 60) { score -= 1; reasons.push("RSI高"); }
+  }
+
+  // BB
+  if (bb !== null && price !== null) {
+    if (price <= bb.lower) { score += 2; reasons.push("BB下限"); }
+    else if (price >= bb.upper) { score -= 2; reasons.push("BB上限"); }
+    else if (price < bb.middle) { score += 0.5; }
+    else { score -= 0.5; }
+  }
+
+  // MACD
+  if (macd !== null) {
+    if (macd.hist > 0 && macd.macd > macd.signal) { score += 2; reasons.push("MACD↑"); }
+    else if (macd.hist < 0 && macd.macd < macd.signal) { score -= 2; reasons.push("MACD↓"); }
+    else if (macd.hist > 0) { score += 1; }
+    else { score -= 1; }
+  }
+
+  // 資金調達率
+  if (fundingRate !== null) {
+    if (fundingRate < -0.001) { score += 2; reasons.push("FR売超"); }
+    else if (fundingRate < 0) { score += 1; }
+    else if (fundingRate > 0.001) { score -= 2; reasons.push("FR買超"); }
+    else if (fundingRate > 0) { score -= 1; }
+  }
+
+  // OI変化
+  if (oi !== null && prevOi !== null && prevOi > 0) {
+    var oiChange = (oi - prevOi) / prevOi;
+    if (oiChange > 0.02) { score += 1; reasons.push("OI増"); }
+    else if (oiChange < -0.02) { score -= 1; reasons.push("OI減"); }
+  }
+
+  var type = "HOLD", strength = "-";
+  if (score >= 4) { type = "BUY"; strength = score >= 6 ? "強" : "中"; }
+  else if (score <= -4) { type = "SELL"; strength = score <= -6 ? "強" : "中"; }
+
+  return { type: type, strength: strength, score: parseFloat(score.toFixed(1)), reason: reasons.join(" ") || "中立" };
 }
 
 function renderCard(sym) {
-  if (document.getElementById("card-" + sym)) return;
+  if (document.getElementById("card-"+sym)) return;
   var div = document.createElement("div");
-  div.className = "card"; div.id = "card-" + sym;
-  div.innerHTML = "<div class='loading'>⏳ データ取得中...</div>";
+  div.className="card"; div.id="card-"+sym;
+  div.innerHTML="<div class='loading'>⏳ データ取得中...</div>";
   document.getElementById("grid").appendChild(div);
 }
 
+var prevOiMap = {};
+
 function fetchAndUpdate(sym) {
   var interval = document.getElementById("intervalSelect").value;
-  var card = document.getElementById("card-" + sym);
+  var card = document.getElementById("card-"+sym);
   if (!card) return;
-  var kUrl = PROXY + "/kline?symbol=" + sym + "&interval=" + interval + "&limit=100";
-  var tUrl = PROXY + "/ticker?symbol=" + sym;
-  Promise.all([fetch(kUrl), fetch(tUrl)]).then(function(res) {
-    return Promise.all([res[0].json(), res[1].json()]);
-  }).then(function(data) {
-    var kJson = data[0], tJson = data[1];
-    var closes = kJson.data.map(function(d){ return parseFloat(Array.isArray(d) ? d[4] : d.close); });
-    var td = Array.isArray(tJson.data) ? tJson.data[0] : tJson.data;
-var change = parseFloat(String(td.priceChangePercent || td.priceChange || "0").replace("%",""));
+  Promise.all([
+    fetch(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
+    fetch(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
+    fetch(PROXY+"/funding?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(PROXY+"/oi?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(data) {
+    var kJson=data[0], tJson=data[1], fJson=data[2], oiJson=data[3];
+    var closes = kJson.data.map(function(d){ return parseFloat(Array.isArray(d)?d[4]:d.close); });
+    var td = Array.isArray(tJson.data)?tJson.data[0]:tJson.data;
     var price = parseFloat(td.lastPrice);
+    var change = parseFloat(String(td.priceChangePercent||td.priceChange||"0").replace("%",""));
     var rsi = calcRSI(closes);
     var bb = calcBB(closes);
-    var signal = getSignal(rsi, bb, price);
-    if (!histories[sym]) histories[sym] = [];
-    var lastSig = histories[sym][0] ? histories[sym][0].signal.type : null;
-    if (signal.type !== "HOLD" && signal.type !== lastSig) fireSignalNotif(sym, signal, price);
-    if (signal.type !== "HOLD") {
-      histories[sym].unshift({ time: new Date().toLocaleTimeString("ja-JP"), signal: signal, price: price });
-      if (histories[sym].length > 8) histories[sym].pop();
+    var macd = calcMACD(closes);
+    var fundingRate = fJson && fJson.data ? parseFloat(fJson.data.lastFundingRate||0) : null;
+    var oi = oiJson && oiJson.data ? parseFloat(oiJson.data.openInterest||0) : null;
+    var prevOi = prevOiMap[sym] || null;
+    if (oi) prevOiMap[sym] = oi;
+    var signal = calcScore(rsi, bb, price, macd, fundingRate, oi, prevOi);
+
+    if (!histories[sym]) histories[sym]=[];
+    var lastSig = histories[sym][0]?histories[sym][0].signal.type:null;
+    if (signal.type!=="HOLD" && signal.type!==lastSig) fireSignalNotif(sym, signal, price);
+    if (signal.type!=="HOLD") {
+      histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),signal:signal,price:price});
+      if (histories[sym].length>8) histories[sym].pop();
     }
-    var sigColor = signal.type === "BUY" ? "#00e5a0" : signal.type === "SELL" ? "#ff4d6d" : "#444466";
-    var chgColor = change >= 0 ? "#00e5a0" : "#ff4d6d";
-    var rsiColor = rsi < 30 ? "#00e5a0" : rsi > 70 ? "#ff4d6d" : "#5577ff";
-    var rsiPct = Math.min(100, Math.max(0, rsi || 0));
-    var histHtml = "";
-    if (histories[sym].length > 0) {
-      histHtml = "<div class='hist'><div class='hist-label'>シグナル履歴</div>";
-      for (var i = 0; i < histories[sym].length; i++) {
-        var h = histories[sym][i];
-        var hc = h.signal.type === "BUY" ? "#00e5a0" : "#ff4d6d";
-        histHtml += "<div class='hist-row'><span style='color:#444;min-width:64px'>" + h.time + "</span><span style='color:" + hc + ";font-weight:700'>" + h.signal.type + "</span><span style='color:#555'>" + fmtPrice(h.price) + "</span></div>";
+
+    var sigColor = signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#444466";
+    var chgColor = change>=0?"#00e5a0":"#ff4d6d";
+    var rsiColor = rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
+    var rsiPct = Math.min(100,Math.max(0,rsi||0));
+    var scorePct = Math.min(100,Math.max(0,(signal.score+10)/20*100));
+    var scoreColor = signal.score>=4?"#00e5a0":signal.score<=-4?"#ff4d6d":"#5577ff";
+    var frPct = fundingRate!==null?(fundingRate*100).toFixed(4)+"%":"--";
+    var oiStr = oi!==null?(oi/1000000).toFixed(1)+"M":"--";
+    var macdStr = macd?macd.macd+"/"+macd.signal:"--";
+
+    var histHtml="";
+    if (histories[sym].length>0) {
+      histHtml="<div class='hist'><div class='hist-label'>シグナル履歴</div>";
+      for (var i=0;i<histories[sym].length;i++) {
+        var h=histories[sym][i],hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
+        histHtml+="<div class='hist-row'><span style='color:#444;min-width:64px'>"+h.time+"</span><span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span><span style='color:#555'>"+fmtPrice(h.price)+"</span></div>";
       }
-      histHtml += "</div>";
+      histHtml+="</div>";
     }
+
     card.innerHTML =
-      "<div class='card-header'><div><div class='pair-name'>" + sym.replace("-","/") + "</div><div style='color:" + chgColor + ";font-size:12px'>" + (change>=0?"▲":"▼") + " " + Math.abs(change).toFixed(2) + "% (24h)</div></div><div style='text-align:right'><div class='price'>" + fmtPrice(price) + "</div><button class='x-btn' onclick='removePair(\"" + sym + "\")'>✕</button></div></div>" +
-      "<div class='badge' style='background:" + sigColor + "18;border:1px solid " + sigColor + "44;color:" + sigColor + "'><span class='badge-type'>" + signal.type + "</span>" + (signal.strength!=="-"?"<span class='badge-strength' style='background:" + sigColor + "30'>" + signal.strength + "</span>":"") + "<span class='badge-reason'>" + signal.reason + "</span></div>" +
-      "<div><div class='rsi-labels'><span>0</span><span style='color:" + rsiColor + "'>RSI " + rsi + "</span><span>100</span></div><div class='rsi-track'><div class='rsi-fill' style='width:" + rsiPct + "%;background:" + rsiColor + "'></div></div><div class='rsi-desc'><span>過売</span><span>中立</span><span>過買</span></div></div>" +
-      "<div class='bb-grid'><div class='bb-row'><span class='bb-label'>BB上限</span><span class='bb-val'>" + fmtPrice(bb?bb.upper:null) + "</span></div><div class='bb-row'><span class='bb-label'>BB中央</span><span class='bb-val'>" + fmtPrice(bb?bb.middle:null) + "</span></div><div class='bb-row'><span class='bb-label'>BB下限</span><span class='bb-val'>" + fmtPrice(bb?bb.lower:null) + "</span></div></div>" +
+      "<div class='card-header'><div><div class='pair-name'>"+sym.replace("-","/")+"</div><div style='color:"+chgColor+";font-size:12px'>"+( change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div><div style='text-align:right'><div class='price'>"+fmtPrice(price)+"</div><button class='x-btn' onclick='removePair(\""+sym+"\")'>✕</button></div></div>"+
+      "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'><span class='badge-type'>"+signal.type+"</span>"+(signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+"<span class='badge-reason'>スコア:"+signal.score+" | "+signal.reason+"</span></div>"+
+      "<div><div style='display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px'><span>売</span><span style='color:"+scoreColor+"'>総合スコア "+signal.score+"</span><span>買</span></div><div class='score-bar-track'><div class='score-bar-fill' style='width:"+scorePct+"%;background:"+scoreColor+"'></div></div></div>"+
+      "<div><div class='rsi-labels'><span>0</span><span style='color:"+rsiColor+"'>RSI "+rsi+"</span><span>100</span></div><div class='rsi-track'><div class='rsi-fill' style='width:"+rsiPct+"%;background:"+rsiColor+"'></div></div><div class='rsi-desc'><span>過売</span><span>中立</span><span>過買</span></div></div>"+
+      "<div class='ind-grid'>"+
+        "<div class='ind-row'><span class='ind-label'>BB上限</span><span class='ind-val'>"+fmtPrice(bb?bb.upper:null)+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>BB下限</span><span class='ind-val'>"+fmtPrice(bb?bb.lower:null)+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>MACD</span><span class='ind-val'>"+macdStr+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>資金調達率</span><span class='ind-val' style='color:"+(fundingRate>0.001?"#ff4d6d":fundingRate<-0.001?"#00e5a0":"#888")+"'>"+frPct+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>OI</span><span class='ind-val'>"+oiStr+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>BB中央</span><span class='ind-val'>"+fmtPrice(bb?bb.middle:null)+"</span></div>"+
+      "</div>"+
       histHtml;
-  }).catch(function(e) {
-    card.innerHTML = "<div class='card-header'><span class='pair-name'>" + sym.replace("-","/") + "</span><button class='x-btn' onclick='removePair(\"" + sym + "\")'>✕</button></div><div class='error'>⚠ " + e.message + "</div><button class='btn' onclick='fetchAndUpdate(\"" + sym + "\")'>再試行</button>";
+  }).catch(function(e){
+    card.innerHTML="<div class='card-header'><span class='pair-name'>"+sym.replace("-","/")+"</span><button class='x-btn' onclick='removePair(\""+sym+"\")'>✕</button></div><div class='error'>⚠ "+e.message+"</div><button class='btn' onclick='fetchAndUpdate(\""+sym+"\")'>再試行</button>";
   });
 }
 
 function removePair(sym) {
-  var idx = pairs.indexOf(sym);
-  if (idx >= 0) pairs.splice(idx, 1);
+  var idx=pairs.indexOf(sym); if (idx>=0) pairs.splice(idx,1);
   savePairs();
-  if (timers[sym]) { clearInterval(timers[sym]); delete timers[sym]; }
-  var card = document.getElementById("card-" + sym);
-  if (card) card.parentNode.removeChild(card);
+  if (timers[sym]){clearInterval(timers[sym]);delete timers[sym];}
+  var card=document.getElementById("card-"+sym); if(card) card.parentNode.removeChild(card);
   renderPopular();
 }
 
 function loadCard(sym) {
   if (timers[sym]) clearInterval(timers[sym]);
   fetchAndUpdate(sym);
-  var ms = {"1m":15000,"5m":20000,"15m":30000,"1h":60000,"4h":120000,"1d":300000};
-  var interval = document.getElementById("intervalSelect").value;
-  timers[sym] = setInterval(function(){ fetchAndUpdate(sym); }, ms[interval] || 20000);
+  var ms={"1m":15000,"5m":20000,"15m":30000,"1h":60000,"4h":120000,"1d":300000};
+  var interval=document.getElementById("intervalSelect").value;
+  timers[sym]=setInterval(function(){fetchAndUpdate(sym);},ms[interval]||20000);
 }
 
-document.getElementById("intervalSelect").addEventListener("change", function() {
-  for (var k in timers) clearInterval(timers[k]);
-  timers = {};
-  for (var i = 0; i < pairs.length; i++) loadCard(pairs[i]);
+document.getElementById("intervalSelect").addEventListener("change",function(){
+  for(var k in timers) clearInterval(timers[k]); timers={};
+  for(var i=0;i<pairs.length;i++) loadCard(pairs[i]);
 });
 
 renderPopular();
-for (var i = 0; i < pairs.length; i++) { renderCard(pairs[i]); loadCard(pairs[i]); }
+for(var i=0;i<pairs.length;i++){renderCard(pairs[i]);loadCard(pairs[i]);}
 </script>
 </body>
 </html>
