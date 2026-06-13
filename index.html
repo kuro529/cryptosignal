@@ -353,7 +353,7 @@ function fetchAndUpdate(sym) {
       histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),signal:signal,price:price});
       if (histories[sym].length>8) histories[sym].pop();
     }
-    var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#444466";
+    var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
     var rsiColor=rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
     var rsiPct=Math.min(100,Math.max(0,rsi||0));
