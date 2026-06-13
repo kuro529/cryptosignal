@@ -335,10 +335,13 @@ function renderCard(sym) {
 function fetchWithRetry(url, retries) {
   retries = retries || 3;
   return fetch(url).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
     return r.json();
   }).catch(function(e) {
-    if (retries > 1) return fetchWithRetry(url, retries - 1);
+    if (retries > 1) {
+      return new Promise(function(resolve) {
+        setTimeout(function() { resolve(fetchWithRetry(url, retries - 1)); }, 1000);
+      });
+    }
     throw e;
   });
 }
