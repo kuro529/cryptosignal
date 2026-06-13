@@ -419,7 +419,13 @@ document.getElementById("intervalSelect").addEventListener("change",function(){
 });
 
 renderPopular();
-for(var i=0;i<pairs.length;i++){renderCard(pairs[i]);loadCard(pairs[i]);}
+for(var i=0;i<pairs.length;i++){
+  renderCard(pairs[i]);
+  (function(sym, delay){
+    setTimeout(function(){ loadCard(sym); }, delay);
+  })(pairs[i], i * 1000);
+}
+
 </script>
 </body>
 </html>
