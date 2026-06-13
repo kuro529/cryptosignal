@@ -332,6 +332,17 @@ function renderCard(sym) {
   document.getElementById("grid").appendChild(div);
 }
 
+function fetchWithRetry(url, retries) {
+  retries = retries || 3;
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).catch(function(e) {
+    if (retries > 1) return fetchWithRetry(url, retries - 1);
+    throw e;
+  });
+}
+  
 function fetchAndUpdate(sym) {
   var interval=document.getElementById("intervalSelect").value;
   var card=document.getElementById("card-"+sym);
