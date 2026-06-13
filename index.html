@@ -119,15 +119,7 @@ function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs
 function saveSignalLog() { try { localStorage.setItem("signalLog", JSON.stringify(signalLog.slice(0,200))); } catch(e) {} }
 
 function addSignalLog(sym, signal, price) {
-  signalLog.unshift({
-    time: new Date().toLocaleString("ja-JP"),
-    sym: sym.replace("-","/"),
-    type: signal.type,
-    strength: signal.strength,
-    score: signal.score,
-    reason: signal.reason,
-    price: price
-  });
+  signalLog.unshift({ time: new Date().toLocaleString("ja-JP"), sym: sym.replace("-","/"), type: signal.type, strength: signal.strength, score: signal.score, reason: signal.reason, price: price });
   if (signalLog.length > 200) signalLog.pop();
   saveSignalLog();
 }
@@ -140,31 +132,16 @@ function toggleLog() {
 
 function renderLog() {
   var list = document.getElementById("logList");
-  if (signalLog.length === 0) {
-    list.innerHTML = "<div style='color:#444;text-align:center;padding:24px'>まだシグナルがありません</div>";
-    return;
-  }
+  if (signalLog.length === 0) { list.innerHTML = "<div style='color:#444;text-align:center;padding:24px'>まだシグナルがありません</div>"; return; }
   var html = "";
   for (var i=0; i<signalLog.length; i++) {
-    var s = signalLog[i];
-    var c = s.type==="BUY" ? "#00e5a0" : "#ff4d6d";
-    html += "<div class='log-row'>" +
-      "<span style='color:#444;font-size:11px;min-width:110px'>" + s.time + "</span>" +
-      "<span style='color:#fff;font-weight:700;font-size:13px'>" + s.sym + "</span>" +
-      "<span style='color:"+c+";font-weight:800;font-size:13px'>" + s.type + "</span>" +
-      (s.strength!=="-" ? "<span style='background:"+c+"30;color:"+c+";border-radius:4px;padding:1px 5px;font-size:10px'>"+s.strength+"</span>" : "") +
-      "<span style='color:#888;font-size:12px'>" + s.price + "</span>" +
-      "<span style='color:#555;font-size:11px'>スコア:" + s.score + "</span>" +
-      "</div>";
+    var s=signalLog[i], c=s.type==="BUY"?"#00e5a0":"#ff4d6d";
+    html += "<div class='log-row'><span style='color:#444;font-size:11px;min-width:110px'>"+s.time+"</span><span style='color:#fff;font-weight:700;font-size:13px'>"+s.sym+"</span><span style='color:"+c+";font-weight:800;font-size:13px'>"+s.type+"</span>"+(s.strength!=="-"?"<span style='background:"+c+"30;color:"+c+";border-radius:4px;padding:1px 5px;font-size:10px'>"+s.strength+"</span>":"")+"<span style='color:#888;font-size:12px'>"+s.price+"</span><span style='color:#555;font-size:11px'>スコア:"+s.score+"</span></div>";
   }
   list.innerHTML = html;
 }
 
-function clearLog() {
-  signalLog = [];
-  saveSignalLog();
-  renderLog();
-}
+function clearLog() { signalLog = []; saveSignalLog(); renderLog(); }
 
 function toggleNotif() {
   if (!notifEnabled) {
@@ -236,7 +213,6 @@ function addPairFromInput() {
 
 function fmtPrice(p) {
   if (p==null) return "-";
-  if (p<0.001) return p.toFixed(6);
   if (p<0.01) return p.toFixed(6);
   if (p<1) return p.toFixed(4);
   if (p<100) return p.toFixed(2);
@@ -262,7 +238,7 @@ function calcBB(closes) {
   var slice=closes.slice(-period);
   var mean=slice.reduce(function(a,b){return a+b;},0)/period;
   var std=Math.sqrt(slice.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/period);
-  return {upper:parseFloat((mean+mult*std).toFixed(4)),middle:parseFloat(mean.toFixed(4)),lower:parseFloat((mean-mult*std).toFixed(4))};
+  return {upper:parseFloat((mean+mult*std).toFixed(6)),middle:parseFloat(mean.toFixed(6)),lower:parseFloat((mean-mult*std).toFixed(6))};
 }
 
 function calcEMA(closes, period) {
@@ -270,7 +246,7 @@ function calcEMA(closes, period) {
   var k=2/(period+1);
   var ema=closes.slice(0,period).reduce(function(a,b){return a+b;},0)/period;
   for (var i=period;i<closes.length;i++) ema=closes[i]*k+ema*(1-k);
-  return parseFloat(ema.toFixed(4));
+  return ema;
 }
 
 function calcMACD(closes) {
@@ -283,8 +259,8 @@ function calcMACD(closes) {
     var e12=calcEMA(closes.slice(0,i+1),12),e26=calcEMA(closes.slice(0,i+1),26);
     if (e12&&e26) macdVals.push(e12-e26);
   }
-  var signal=macdVals.reduce(function(a,b){return a+b;},0)/macdVals.length;
-  return {macd:parseFloat(macdLine.toFixed(4)),signal:parseFloat(signal.toFixed(4)),hist:parseFloat((macdLine-signal).toFixed(4))};
+  var sig=macdVals.reduce(function(a,b){return a+b;},0)/macdVals.length;
+  return {macd:macdLine,signal:sig,hist:macdLine-sig};
 }
 
 function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi) {
@@ -331,16 +307,33 @@ function renderCard(sym) {
   div.innerHTML="<div class='loading'>⏳ データ取得中...</div>";
   document.getElementById("grid").appendChild(div);
 }
-  
+
+function getJSON(url) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch(e) { reject(e); }
+      } else { reject(new Error("HTTP " + xhr.status)); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.timeout = 10000;
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    xhr.send();
+  });
+}
+
 function fetchAndUpdate(sym) {
-  var interval=document.getElementById("intervalSelect").value;
-  var card=document.getElementById("card-"+sym);
+  var interval = document.getElementById("intervalSelect").value;
+  var card = document.getElementById("card-"+sym);
   if (!card) return;
   Promise.all([
-    fetch(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
-    fetch(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
-    fetch(PROXY+"/funding?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(PROXY+"/oi?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;})
+    getJSON(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100"),
+    getJSON(PROXY+"/ticker?symbol="+sym),
+    getJSON(PROXY+"/funding?symbol="+sym).catch(function(){return null;}),
+    getJSON(PROXY+"/oi?symbol="+sym).catch(function(){return null;})
   ]).then(function(data) {
     var kJson=data[0],tJson=data[1],fJson=data[2],oiJson=data[3];
     var closes=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[4]:d.close);});
@@ -355,10 +348,7 @@ function fetchAndUpdate(sym) {
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi);
     if (!histories[sym]) histories[sym]=[];
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
-    if (signal.type!=="HOLD"&&signal.type!==lastSig) {
-      fireSignalNotif(sym,signal,price);
-      addSignalLog(sym,signal,price);
-    }
+    if (signal.type!=="HOLD"&&signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
     if (signal.type!=="HOLD") {
       histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),signal:signal,price:price});
       if (histories[sym].length>8) histories[sym].pop();
@@ -371,7 +361,7 @@ function fetchAndUpdate(sym) {
     var scoreColor=signal.score>=4?"#00e5a0":signal.score<=-4?"#ff4d6d":"#5577ff";
     var frPct=fundingRate!==null?(fundingRate*100).toFixed(4)+"%":"--";
     var oiStr=oi!==null?(oi/1000000).toFixed(1)+"M":"--";
-    var macdStr=macd?macd.macd+"/"+macd.signal:"--";
+    var macdStr=macd?parseFloat(macd.macd.toFixed(4))+"/"+parseFloat(macd.signal.toFixed(4)):"--";
     var histHtml="";
     if (histories[sym].length>0) {
       histHtml="<div class='hist'><div class='hist-label'>直近シグナル</div>";
@@ -423,11 +413,8 @@ document.getElementById("intervalSelect").addEventListener("change",function(){
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
-  (function(sym, delay){
-    setTimeout(function(){ loadCard(sym); }, delay);
-  })(pairs[i], i * 2000);
+  (function(sym,delay){ setTimeout(function(){ loadCard(sym); }, delay); })(pairs[i], i*2000);
 }
-
 </script>
 </body>
 </html>
