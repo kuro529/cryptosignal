@@ -348,10 +348,10 @@ function fetchAndUpdate(sym) {
   var card=document.getElementById("card-"+sym);
   if (!card) return;
   Promise.all([
-    fetch(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
-    fetch(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
-    fetch(PROXY+"/funding?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(PROXY+"/oi?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;})
+    fetchWithRetry(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
+    fetchWithRetry(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
+    fetchWithRetry(PROXY+"/funding?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetchWithRetry(PROXY+"/oi?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;})
   ]).then(function(data) {
     var kJson=data[0],tJson=data[1],fJson=data[2],oiJson=data[3];
     var closes=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[4]:d.close);});
