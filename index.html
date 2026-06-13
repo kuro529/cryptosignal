@@ -331,28 +331,14 @@ function renderCard(sym) {
   div.innerHTML="<div class='loading'>⏳ データ取得中...</div>";
   document.getElementById("grid").appendChild(div);
 }
-
-function fetchWithRetry(url, retries) {
-  retries = retries || 3;
-  return fetch(url).then(function(r) {
-    return r.json();
-  }).catch(function(e) {
-    if (retries > 1) {
-      return new Promise(function(resolve) {
-        setTimeout(function() { resolve(fetchWithRetry(url, retries - 1)); }, 1000);
-      });
-    }
-    throw e;
-  });
-}
   
 function fetchAndUpdate(sym) {
   var interval=document.getElementById("intervalSelect").value;
   var card=document.getElementById("card-"+sym);
   if (!card) return;
   Promise.all([
-    fetchWithRetry(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
-    fetchWithRetry(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
+    fetch(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100").then(function(r){return r.json();}),
+    fetch(PROXY+"/ticker?symbol="+sym).then(function(r){return r.json();}),
     fetch(PROXY+"/funding?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;}),
     fetch(PROXY+"/oi?symbol="+sym).then(function(r){return r.json();}).catch(function(){return null;})
   ]).then(function(data) {
