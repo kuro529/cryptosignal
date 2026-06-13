@@ -243,10 +243,10 @@ function fetchAndUpdate(sym) {
     return Promise.all([res[0].json(), res[1].json()]);
   }).then(function(data) {
     var kJson = data[0], tJson = data[1];
-    var closes = kJson.data.map(function(d){ return parseFloat(d[4]); });
+    var closes = kJson.data.map(function(d){ return parseFloat(Array.isArray(d) ? d[4] : d.close); });
     var td = Array.isArray(tJson.data) ? tJson.data[0] : tJson.data;
+var change = parseFloat(String(td.priceChangePercent || td.priceChange || "0").replace("%",""));
     var price = parseFloat(td.lastPrice);
-    var change = parseFloat(String(td.priceChangePercent).replace("%",""));
     var rsi = calcRSI(closes);
     var bb = calcBB(closes);
     var signal = getSignal(rsi, bb, price);
