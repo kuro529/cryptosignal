@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ CryptoSignal</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #07070f; color: #dde; font-family: -apple-system, 'Hiragino Sans', sans-serif; min-height: 100vh; padding-bottom: 48px; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 16px 12px; border-bottom: 1px solid #12121f; flex-wrap: wrap; gap: 10px; }
+.title { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+.subtitle { font-size: 11px; color: #383848; margin-top: 3px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-radius: 7px; padding: 5px 10px; font-size: 13px; }
+.btn-add { padding: 6px 14px; border-radius: 8px; border: 1px solid #00e5a044; background: #00e5a010; color: #00e5a0; cursor: pointer; font-size: 13px; }
+.add-bar { display: flex; gap: 8px; padding: 10px 16px; background: #0d0d1a; border-bottom: 1px solid #12121f; }
+.add-bar input { flex: 1; background: #07070f; border: 1px solid #222236; color: #ccc; border-radius: 7px; padding: 6px 12px; font-size: 13px; }
+.legend { display: flex; gap: 12px; padding: 8px 16px; font-size: 12px; border-bottom: 1px solid #0f0f1c; flex-wrap: wrap; align-items: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 14px 16px; }
+.card { background: #0d0d1a; border: 1px solid #12121f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.pair-name { font-weight: 700; font-size: 16px; color: #fff; }
+.price { font-weight: 700; font-size: 20px; color: #fff; font-variant-numeric: tabular-nums; }
+.x-btn { background: none; border: none; color: #2a2a44; cursor: pointer; font-size: 16px; }
+.badge { border-radius: 9px; padding: 9px 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.badge-type { font-weight: 800; font-size: 16px; }
+.badge-strength { border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+.badge-reason { font-size: 11px; opacity: 0.8; }
+.rsi-labels { display: flex; justify-content: space-between; font-size: 11px; color: #555; margin-bottom: 3px; }
+.rsi-track { background: #1a1a2e; border-radius: 4px; height: 6px; overflow: hidden; }
+.rsi-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+.rsi-desc { display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-top: 2px; }
+.bb-grid { display: flex; flex-direction: column; gap: 4px; }
+.bb-row { display: flex; justify-content: space-between; border-bottom: 1px solid #0f0f1c; padding-bottom: 3px; }
+.bb-label { color: #444; font-size: 11px; }
+.bb-val { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
+.hist { border-top: 1px solid #12121f; padding-top: 8px; }
+.hist-label { color: #333; font-size: 10px; margin-bottom: 5px; }
+.hist-row { display: flex; align-items: center; margin-bottom: 3px; font-size: 11px; gap: 8px; }
+.loading { color: #2a2a44; text-align: center; padding: 24px; font-size: 13px; }
+.error { color: #ff4d6d; font-size: 12px; }
+.footer { text-align: center; color: #222236; font-size: 10px; padding: 16px; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="title">⚡ CryptoSignal</div>
+    <div class="subtitle">BingX リアルタイム　RSI × ボリンジャーバンド</div>
+  </div>
+  <div class="controls">
+    <select id="intervalSelect">
+      <option value="1m">1m</option>
+      <option value="5m">5m</option>
+      <option value="15m" selected>15m</option>
+      <option value="1h">1h</option>
+      <option value="4h">4h</option>
+      <option value="1d">1d</option>
+    </select>
+    <button class="btn-add" onclick="toggleAdd()">＋ 追加</button>
+  </div>
+</div>
+<div class="add-bar hidden" id="addBar">
+  <input id="pairInput" placeholder="例: DOGE-USDT" list="pairSuggestions" />
+  <datalist id="pairSuggestions">
+    <option value="BTC-USDT"><option value="ETH-USDT"><option value="XRP-USDT">
+    <option value="SOL-USDT"><option value="BNB-USDT"><option value="DOGE-USDT">
+  </datalist>
+  <button class="btn-add" onclick="addPair()">追加</button>
+</div>
+<div class="legend">
+  <span style="color:#00e5a0">● BUY</span>
+  <span style="color:#ff4d6d">● SELL</span>
+  <span style="color:#444466">● HOLD</span>
+  <span style="color:#333;font-size:10px">「強」= RSI＋BBダブル条件成立</span>
+</div>
+<div class="grid" id="grid"></div>
+<div class="footer">データソース: BingX Public API　|　⚠ 投資判断は自己責任でお願いします</div>
+<script>
+const PROXY = "https://bingx-proxy-v83p.onrender.com";
+const pairs = ["BTC-USDT", "ETH-USDT"];
+const timers = {};
+function toggleAdd() {
+  const bar = document.getElementById("addBar");
+  bar.classList.toggle("hidden");
+  if (!bar.classList.contains("hidden")) document.getElementById("pairInput").focus();
+}
+function addPair() {
+  const input = document.getElementById("pairInput");
+  const sym = input.value.toUpperCase().replace("/", "-").trim();
+  if (sym && !pairs.includes(sym)) { pairs.push(sym); renderCard(sym); loadCard(sym); }
+  input.value = "";
+  document.getElementById("addBar").classList.add("hidden");
+}
+document.getElementById("pairInput").addEventListener("keydown", e => { if (e.key === "Enter") addPair(); });
+document.getElementById("intervalSelect").addEventListener("change", () => {
+  Object.values(timers).forEach(clearInterval);
+  pairs.forEach(sym => loadCard(sym));
+});
+function fmtPrice(p) {
+  if (p == null) return "-";
+  if (p < 1) return p.toFixed(4);
+  if (p < 100) return p.toFixed(2);
+  return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  const ag = gains / period, al = losses / period;
+  if (al === 0) return 100;
+  return parseFloat((100 - 100 / (1 + ag / al)).toFixed(1));
+}
+function calcBB(closes, period = 20, mult = 2) {
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  const mean = slice.reduce((a, b) => a + b, 0) / period;
+  const std = Math.sqrt(slice.reduce((a, b) => a + (b - mean) ** 2, 0) / period);
+  return { upper: parseFloat((mean + mult * std).toFixed(4)), middle: parseFloat(mean.toFixed(4)), lower: parseFloat((mean - mult * std).toFixed(4)) };
+}
+function getSignal(rsi, bb, price) {
+  if (!rsi || !bb || !price) return { type: "HOLD", reason: "データ不足", strength: "-" };
+  if (rsi < 30 && price <= bb.lower) return { type: "BUY", reason: `RSI過売(${rsi}) ＋ BB下限タッチ`, strength: "強" };
+  if (rsi < 35 && price < bb.lower) return { type: "BUY", reason: `RSI低水準(${rsi}) ＋ BB下限割れ`, strength: "中" };
+  if (rsi > 70 && price >= bb.upper) return { type: "SELL", reason: `RSI過買(${rsi}) ＋ BB上限タッチ`, strength: "強" };
+  if (rsi > 65 && price > bb.upper) return { type: "SELL", reason: `RSI高水準(${rsi}) ＋ BB上限超え`, strength: "中" };
+  return { type: "HOLD", reason: `RSI: ${rsi}　BB内で推移中`, strength: "-" };
+}
+function renderCard(sym) {
+  const grid = document.getElementById("grid");
+  if (document.getElementById("card-" + sym)) return;
+  const div = document.createElement("div");
+  div.className = "card"; div.id = "card-" + sym;
+  div.innerHTML = `<div class="loading">⏳ BingXからデータ取得中...</div>`;
+  grid.appendChild(div);
+}
+const histories = {};
+async function fetchAndUpdate(sym) {
+  const interval = document.getElementById("intervalSelect").value;
+  const card = document.getElementById("card-" + sym);
+  if (!card) return;
+  try {
+    const [kRes, tRes] = await Promise.all([
+      fetch(`${PROXY}/kline?symbol=${sym}&interval=${interval}&limit=100`),
+      fetch(`${PROXY}/ticker?symbol=${sym}`)
+    ]);
+    const kJson = await kRes.json();
+    const tJson = await tRes.json();
+    const closes = kJson.data.map(d => parseFloat(d[4]));
+    const td = Array.isArray(tJson.data) ? tJson.data[0] : tJson.data;
+    const price = parseFloat(td.lastPrice);
+    const change = parseFloat(String(td.priceChangePercent).replace("%", ""));
+    const rsi = calcRSI(closes);
+    const bb = calcBB(closes);
+    const signal = getSignal(rsi, bb, price);
+    if (!histories[sym]) histories[sym] = [];
+    if (signal.type !== "HOLD") {
+      histories[sym].unshift({ time: new Date().toLocaleTimeString("ja-JP"), signal, price });
+      if (histories[sym].length > 8) histories[sym].pop();
+    }
+    const sigColor = signal.type === "BUY" ? "#00e5a0" : signal.type === "SELL" ? "#ff4d6d" : "#444466";
+    const chgColor = change >= 0 ? "#00e5a0" : "#ff4d6d";
+    const rsiColor = rsi < 30 ? "#00e5a0" : rsi > 70 ? "#ff4d6d" : "#5577ff";
+    const rsiPct = Math.min(100, Math.max(0, rsi || 0));
+    const histHtml = histories[sym].length > 0 ? `<div class="hist"><div class="hist-label">📋 シグナル履歴</div>${histories[sym].map(h => `<div class="hist-row"><span style="color:#444;min-width:64px">${h.time}</span><span style="color:${h.signal.type==="BUY"?"#00e5a0":"#ff4d6d"};font-weight:700">${h.signal.type}</span><span style="color:#555">${fmtPrice(h.price)}</span></div>`).join("")}</div>` : "";
+    card.innerHTML = `
+      <div class="card-header">
+        <div><div class="pair-name">${sym.replace("-","/")}</div><div style="color:${chgColor};font-size:12px;margin-top:1px">${change>=0?"▲":"▼"} ${Math.abs(change).toFixed(2)}% (24h)</div></div>
+        <div style="text-align:right"><div class="price">${fmtPrice(price)}</div><button class="x-btn" onclick="removePair('${sym}')">✕</button></div>
+      </div>
+      <div class="badge" style="background:${sigColor}18;border:1px solid ${sigColor}44;color:${sigColor}">
+        <span class="badge-type">${signal.type}</span>
+        ${signal.strength!=="-"?`<span class="badge-strength" style="background:${sigColor}30">${signal.strength}</span>`:""}
+        <span class="badge-reason">${signal.reason}</span>
+      </div>
+      <div><div class="rsi-labels"><span>0</span><span style="color:${rsiColor}">RSI ${rsi}</span><span>100</span></div><div class="rsi-track"><div class="rsi-fill" style="width:${rsiPct}%;background:${rsiColor}"></div></div><div class="rsi-desc"><span>過売</span><span>中立</span><span>過買</span></div></div>
+      <div class="bb-grid">
+        <div class="bb-row"><span class="bb-label">BB上限</span><span class="bb-val">${fmtPrice(bb?.upper)}</span></div>
+        <div class="bb-row"><span class="bb-label">BB中央</span><span class="bb-val">${fmtPrice(bb?.middle)}</span></div>
+        <div class="bb-row"><span class="bb-label">BB下限</span><span class="bb-val">${fmtPrice(bb?.lower)}</span></div>
+      </div>
+      ${histHtml}`;
+  } catch(e) {
+    card.innerHTML = `<div class="card-header"><span class="pair-name">${sym.replace("-","/")}</span><button class="x-btn" onclick="removePair('${sym}')">✕</button></div><div class="error">⚠ ${e.message}</div><button class="btn-add" onclick="fetchAndUpdate('${sym}')">再試行</button>`;
+  }
+}
+function removePair(sym) {
+  const idx = pairs.indexOf(sym); if (idx > -1) pairs.splice(idx, 1);
+  clearInterval(timers[sym]); delete timers[sym];
+  const card = document.getElementById("card-" + sym); if (card) card.remove();
+}
+function loadCard(sym) {
+  clearInterval(timers[sym]);
+  fetchAndUpdate(sym);
+  const ms = {"1m":15000,"5m":20000,"15m":30000,"1h":60000,"4h":120000,"1d":300000};
+  const interval = document.getElementById("intervalSelect").value;
+  timers[sym] = setInterval(() => fetchAndUpdate(sym), ms[interval] || 20000);
+}
+pairs.forEach(sym => { renderCard(sym); loadCard(sym); });
+</script>
+</body>
+</html>
