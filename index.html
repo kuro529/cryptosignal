@@ -103,7 +103,9 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 <div class="footer">BingX API | 投資判断は自己責任でお願いします</div>
 <script>
 var PROXY = "https://bingx-proxy-v83p.onrender.com";
-var POPULAR = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","H-USDT","NIL-USDT","ROSE-USDT"];
+var POPULAR_DEFAULT = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","H-USDT","NIL-USDT","ROSE-USDT"];
+var POPULAR = POPULAR_DEFAULT.slice();
+try { var savedPop = localStorage.getItem("popular"); if (savedPop) POPULAR = JSON.parse(savedPop); } catch(e) {}
 var pairs = ["BTC-USDT","SOL-USDT"];
 var timers = {};
 var histories = {};
@@ -116,6 +118,7 @@ try { var saved = localStorage.getItem("pairs3"); if (saved) pairs = JSON.parse(
 try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch(e) {}
 
 function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
+function savePopular() { try { localStorage.setItem("popular", JSON.stringify(POPULAR)); } catch(e) {} }
 function saveSignalLog() { try { localStorage.setItem("signalLog", JSON.stringify(signalLog.slice(0,200))); } catch(e) {} }
 
 function addSignalLog(sym, signal, price) {
@@ -204,8 +207,8 @@ function cancelLongPress() {
 }
 function removePopularBtn(sym) {
   if (confirm(sym.replace("-USDT","") + " のボタンを削除しますか？")) {
-    var idx = POPULAR.indexOf(sym);
-    if (idx >= 0) POPULAR.splice(idx, 1);
+        var idx = POPULAR.indexOf(sym);
+    if (idx >= 0) { POPULAR.splice(idx, 1); savePopular(); }
     removePair(sym);
     renderPopular();
   }
@@ -228,7 +231,7 @@ function addPairFromInput() {
   if (pairs.indexOf(sym)<0) {
     pairs.push(sym);
     savePairs();
-    if (POPULAR.indexOf(sym)<0) POPULAR.push(sym);
+        if (POPULAR.indexOf(sym)<0) { POPULAR.push(sym); savePopular(); }
     renderCard(sym);
     loadCard(sym);
     renderPopular();
