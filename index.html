@@ -188,9 +188,27 @@ function renderPopular() {
   var html = "";
   for (var i=0;i<POPULAR.length;i++) {
     var p=POPULAR[i], active=pairs.indexOf(p)>=0?"active":"";
-    html += "<button class='popular-btn "+active+"' onclick='togglePair(\""+p+"\")'>" + p.replace("-USDT","") + "</button>";
+    html += "<button class='popular-btn "+active+"' onclick='togglePair(\""+p+"\")' oncontextmenu='removePopularBtn(\""+p+"\");return false;' ontouchstart='startLongPress(\""+p+"\")' ontouchend='cancelLongPress()'>" + p.replace("-USDT","") + "</button>";
   }
   wrap.innerHTML = html;
+}
+
+var longPressTimer = null;
+function startLongPress(sym) {
+  longPressTimer = setTimeout(function() {
+    removePopularBtn(sym);
+  }, 700);
+}
+function cancelLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}
+function removePopularBtn(sym) {
+  if (confirm(sym.replace("-USDT","") + " のボタンを削除しますか？")) {
+    var idx = POPULAR.indexOf(sym);
+    if (idx >= 0) POPULAR.splice(idx, 1);
+    removePair(sym);
+    renderPopular();
+  }
 }
 
 function togglePair(sym) {
