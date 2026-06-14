@@ -207,7 +207,14 @@ function addPairFromInput() {
   var input = document.getElementById("pairInput");
   var sym = input.value.toUpperCase().replace("/","-").trim();
   if (!sym) return;
-  if (pairs.indexOf(sym)<0) { pairs.push(sym); savePairs(); renderCard(sym); loadCard(sym); renderPopular(); }
+  if (pairs.indexOf(sym)<0) {
+    pairs.push(sym);
+    savePairs();
+    if (POPULAR.indexOf(sym)<0) POPULAR.push(sym);
+    renderCard(sym);
+    loadCard(sym);
+    renderPopular();
+  }
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
 
