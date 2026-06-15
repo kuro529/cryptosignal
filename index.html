@@ -131,7 +131,7 @@ function savePopular() {
   for (var si=0; si<POPULAR.length; si++) {
     if (POPULAR_DEFAULT.indexOf(POPULAR[si]) < 0) extra.push(POPULAR[si]);
   }
-  try { localStorage.setItem("popular", JSON.stringify(extra)); } catch(e) {}
+  try { localStorage.setItem("popular2", JSON.stringify(extra)); } catch(e) {}
 }
 function saveSignalLog() { try { localStorage.setItem("signalLog", JSON.stringify(signalLog.slice(0,200))); } catch(e) {} }
 
