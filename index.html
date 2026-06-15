@@ -237,7 +237,7 @@ function addPairFromInput() {
   if (pairs.indexOf(sym)<0) {
     pairs.unshift(sym);
     savePairs();
-    if (POPULAR.indexOf(sym)<0) { POPULAR.unshift(sym); savePopular(); }
+    if (POPULAR.indexOf(sym)<0) { POPULAR.push(sym); savePopular(); }
     renderCard(sym);
     var grid = document.getElementById("grid");
     var card = document.getElementById("card-"+sym);
