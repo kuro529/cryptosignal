@@ -229,10 +229,13 @@ function addPairFromInput() {
   var sym = input.value.toUpperCase().replace("/","-").trim();
   if (!sym) return;
   if (pairs.indexOf(sym)<0) {
-    pairs.push(sym);
+    pairs.unshift(sym);
     savePairs();
-        if (POPULAR.indexOf(sym)<0) { POPULAR.push(sym); savePopular(); }
+    if (POPULAR.indexOf(sym)<0) { POPULAR.unshift(sym); savePopular(); }
     renderCard(sym);
+    var grid = document.getElementById("grid");
+    var card = document.getElementById("card-"+sym);
+    grid.insertBefore(card, grid.firstChild);
     loadCard(sym);
     renderPopular();
   }
