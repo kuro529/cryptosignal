@@ -229,11 +229,15 @@ function removePopularBtn(sym) {
 }
 
 function togglePair(sym) {
-  if (pairs.indexOf(sym)>=0) removePair(sym);
-  else {
+  if (pairs.indexOf(sym)>=0) {
+    removePair(sym);
+  } else {
     pairs.unshift(sym);
     savePairs();
-    if (POPULAR.indexOf(sym)<0) { POPULAR.push(sym); savePopular(); }
+    if (POPULAR.indexOf(sym)<0) {
+      POPULAR.push(sym);
+    }
+    savePopular();
     renderCard(sym);
     var grid = document.getElementById("grid");
     var card = document.getElementById("card-"+sym);
