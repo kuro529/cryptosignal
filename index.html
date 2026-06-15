@@ -217,9 +217,12 @@ function removePopularBtn(sym) {
 function togglePair(sym) {
   if (pairs.indexOf(sym)>=0) removePair(sym);
   else {
-    pairs.push(sym);
+    pairs.unshift(sym);
     savePairs();
     renderCard(sym);
+    var grid = document.getElementById("grid");
+    var card = document.getElementById("card-"+sym);
+    grid.insertBefore(card, grid.firstChild);
     loadCard(sym);
     renderPopular();
   }
