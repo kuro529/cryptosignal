@@ -333,12 +333,13 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi) {
     else if (price<bb.middle){score+=0.5;details.bb=0.5;}
     else{score-=0.5;details.bb=-0.5;}
   }
-    if (macd!==null) {
-    if (macd.hist>0&&macd.macd>macd.signal){score+=3;details.macd=3;reasons.push("MACD↑");}
-    else if (macd.hist<0&&macd.macd<macd.signal){score-=3;details.macd=-3;reasons.push("MACD↓");}
-    else if (macd.hist>0){score+=1.5;details.macd=1.5;}
-    else{score-=1.5;details.macd=-1.5;}
+  if (macd!==null) {
+    if (macd.macd>0&&macd.macd>macd.signal){score+=3;details.macd=3;reasons.push("MACD強↑");}
+    else if (macd.macd>0&&macd.macd<=macd.signal){score-=1;details.macd=-1;reasons.push("MACD弱↓");}
+    else if (macd.macd<=0&&macd.macd>macd.signal){score+=1;details.macd=1;reasons.push("MACD弱↑");}
+    else{score-=3;details.macd=-3;reasons.push("MACD強↓");}
   }
+
   if (fundingRate!==null) {
     if (fundingRate<-0.001){score+=2;details.fr=2;reasons.push("FR売超");}
     else if (fundingRate<0){score+=1;details.fr=1;}
