@@ -104,7 +104,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 <div class="footer">BingX API | 投資判断は自己責任でお願いします</div>
 <script>
 var PROXY = "https://bingx-proxy-v83p.onrender.com";
-var POPULAR_DEFAULT = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","H-USDT","NIL-USDT","ROSE-USDT","CRO-USDT","CLO-USDT","HYPE-USDT","BEAT-USDT","GPS-USDT","VELVET-USDT","ENS-USDT","STX-USDT","FIDA-USDT","DASH-USDT","FET-USDT","TAO-USDT","ATH-USDT","DEXE-USDT","KITE-USDT","ONDO-USDT","DOGE-USDT","VIRTUAL-USDT","SLX-USDT","HFT-USDT","ACE-USDT","NMR-USDT","SUI-USDT","XRP-USDT","SIREN-USDT","RE-USDT","IO-USDT","M-USDT","IDOL-USDT"];
+var POPULAR_DEFAULT = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","H-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","NIL-USDT","ROSE-USDT","CRO-USDT","CLO-USDT","HYPE-USDT","BEAT-USDT","GPS-USDT","VELVET-USDT","ENS-USDT","STX-USDT","FIDA-USDT","DASH-USDT","FET-USDT","TAO-USDT","ATH-USDT","DEXE-USDT","KITE-USDT","ONDO-USDT","DOGE-USDT","VIRTUAL-USDT","SLX-USDT","HFT-USDT","ACE-USDT","NMR-USDT","SUI-USDT","XRP-USDT","SIREN-USDT","RE-USDT","IO-USDT","M-USDT","IDOL-USDT"];
 var POPULAR = POPULAR_DEFAULT.slice();
 try {
   var savedPop = localStorage.getItem("popular2");
@@ -333,11 +333,11 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi) {
     else if (price<bb.middle){score+=0.5;details.bb=0.5;}
     else{score-=0.5;details.bb=-0.5;}
   }
-  if (macd!==null) {
-    if (macd.hist>0&&macd.macd>macd.signal){score+=2;details.macd=2;reasons.push("MACD↑");}
-    else if (macd.hist<0&&macd.macd<macd.signal){score-=2;details.macd=-2;reasons.push("MACD↓");}
-    else if (macd.hist>0){score+=1;details.macd=1;}
-    else{score-=1;details.macd=-1;}
+    if (macd!==null) {
+    if (macd.hist>0&&macd.macd>macd.signal){score+=3;details.macd=3;reasons.push("MACD↑");}
+    else if (macd.hist<0&&macd.macd<macd.signal){score-=3;details.macd=-3;reasons.push("MACD↓");}
+    else if (macd.hist>0){score+=1.5;details.macd=1.5;}
+    else{score-=1.5;details.macd=-1.5;}
   }
   if (fundingRate!==null) {
     if (fundingRate<-0.001){score+=2;details.fr=2;reasons.push("FR売超");}
