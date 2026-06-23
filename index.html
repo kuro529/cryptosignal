@@ -386,17 +386,18 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
   }
 
   // 資金調達率
-    if (fundingRate!==null) {
+  if (fundingRate!==null) {
     var frScore=0;
     if (fundingRate>=0.01){frScore=-2;reasons.push("FR高+");}
-    else if (fundingRate>=0.001){frScore=-1;reasons.push("FR中+");}
+    else if (fundingRate>=0.0001){frScore=-1;reasons.push("FR中+");}
     else if (fundingRate<=-0.01){frScore=2;reasons.push("FR高-");}
-    else if (fundingRate<=-0.001){frScore=1.5;reasons.push("FR中-");}
-    else if (fundingRate<=-0.0005){frScore=1;reasons.push("FR低-");}
+    else if (fundingRate<=-0.0001){frScore=1.5;reasons.push("FR中-");}
+    else if (fundingRate<=-0.00005){frScore=1;reasons.push("FR低-");}
     else if (fundingRate<0){frScore=0.5;}
     details.fr=frScore;
     score+=frScore;
   }
+
 
   // OI
   if (oi!==null&&prevOi!==null&&prevOi>0) {
