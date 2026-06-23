@@ -368,18 +368,18 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     var curHistAbs = Math.abs(macd.hist);
     var histExpanding = prevHistAbs !== null ? curHistAbs > prevHistAbs : true;
     var macdScore=0;
-    if (macd.macd>0 && macd.macd>macd.signal) {
-      if (histExpanding){macdScore=4;reasons.push("MACD強↑拡");}
+        if (macd.macd>0 && macd.macd>macd.signal) {
+      if (histExpanding){macdScore=3;reasons.push("MACD強↑拡");}
       else{macdScore=2;reasons.push("MACD強↑縮");}
     } else if (macd.macd>0 && macd.macd<=macd.signal) {
-      if (histExpanding){macdScore=-1;reasons.push("MACD弱↓拡");}
+      if (histExpanding){macdScore=-2;reasons.push("MACD弱↓拡");}
       else{macdScore=0;}
     } else if (macd.macd<=0 && macd.macd>macd.signal) {
-      if (histExpanding){macdScore=1;reasons.push("MACD弱↑拡");}
-      else{macdScore=0;}
+      if (histExpanding){macdScore=2;reasons.push("MACD弱↑拡");}
+      else{macdScore=1;reasons.push("MACD弱↑縮");}
     } else {
-      if (histExpanding){macdScore=-4;reasons.push("MACD強↓拡");}
-      else{macdScore=-2;reasons.push("MACD強↓縮");}
+      if (histExpanding){macdScore=-3;reasons.push("MACD強↓拡");}
+      else{macdScore=-1;reasons.push("MACD強↓縮");}
     }
     details.macd=macdScore;
     score+=macdScore;
@@ -388,11 +388,11 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
   // 資金調達率
     if (fundingRate!==null) {
     var frScore=0;
-    if (fundingRate>=0.001){frScore=-2;reasons.push("FR高+");}
-    else if (fundingRate>=0.0001){frScore=-1;reasons.push("FR中+");}
-    else if (fundingRate<=-0.001){frScore=2;reasons.push("FR高-");}
-    else if (fundingRate<=-0.0001){frScore=1.5;reasons.push("FR中-");}
-    else if (fundingRate<=-0.00005){frScore=1;reasons.push("FR低-");}
+    if (fundingRate>=0.01){frScore=-2;reasons.push("FR高+");}
+    else if (fundingRate>=0.001){frScore=-1;reasons.push("FR中+");}
+    else if (fundingRate<=-0.01){frScore=2;reasons.push("FR高-");}
+    else if (fundingRate<=-0.001){frScore=1.5;reasons.push("FR中-");}
+    else if (fundingRate<=-0.0005){frScore=1;reasons.push("FR低-");}
     else if (fundingRate<0){frScore=0.5;}
     details.fr=frScore;
     score+=frScore;
