@@ -79,6 +79,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
     </select>
     <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
+    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
   </div>
 </div>
@@ -549,6 +550,72 @@ for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
   (function(sym,delay){ setTimeout(function(){ loadCard(sym); }, delay); })(pairs[i], i*2000);
 }
+var scanQueue = [];
+var scanResults = [];
+var scanIndex = 0;
+var scanTotal = 0;
+
+function startScan() {
+  var btn = document.getElementById("scanBtn");
+  btn.textContent = "⏳ スキャン中...";
+  btn.disabled = true;
+  scanResults = [];
+  // 既に表示中の銘柄を除いたリスト
+  scanQueue = POPULAR.filter(function(p){ return pairs.indexOf(p) < 0; });
+  scanTotal = scanQueue.length;
+  scanIndex = 0;
+  if (scanTotal === 0) { btn.textContent = "🔍 スキャン"; btn.disabled = false; return; }
+  scanNext();
+}
+
+function scanNext() {
+  var btn = document.getElementById("scanBtn");
+  if (scanIndex >= scanTotal) {
+    btn.textContent = "🔍 スキャン";
+    btn.disabled = false;
+    if (scanResults.length === 0) {
+      showToast("スキャン完了", "シグナルなし", "buy", 3000);
+    } else {
+      showToast("スキャン完了", scanResults.length + "件のシグナル発見！", "buy", 3000);
+      scanResults.forEach(function(sym) {
+        if (pairs.indexOf(sym) < 0) {
+          pairs.unshift(sym);
+          savePairs();
+          renderCard(sym);
+          var grid = document.getElementById("grid");
+          var card = document.getElementById("card-"+sym);
+          grid.insertBefore(card, grid.firstChild);
+          loadCard(sym);
+          renderPopular();
+        }
+      });
+    }
+    return;
+  }
+  var sym = scanQueue[scanIndex];
+  btn.textContent = "⏳ "+scanIndex+"/"+scanTotal;
+  scanIndex++;
+  var interval = document.getElementById("intervalSelect").value;
+  Promise.all([
+    getJSON(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100"),
+    getJSON(PROXY+"/ticker?symbol="+sym),
+    getJSON(PROXY+"/funding?symbol="+sym).catch(function(){return null;}),
+    getJSON(PROXY+"/oi?symbol="+sym).catch(function(){return null;})
+  ]).then(function(data) {
+    var kJson=data[0],tJson=data[1],fJson=data[2],oiJson=data[3];
+    var closes=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[4]:d.close);});
+    var td=Array.isArray(tJson.data)?tJson.data[0]:tJson.data;
+    var price=parseFloat(td.lastPrice);
+    var rsi=calcRSI(closes),bb=calcBB(closes),macd=calcMACD(closes);
+    var fundingRate=fJson&&fJson.data?parseFloat(fJson.data.lastFundingRate||0):null;
+    var oi=oiJson&&oiJson.data?parseFloat(oiJson.data.openInterest||0):null;
+    var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,null,null);
+    if (signal.type!=="HOLD") scanResults.push(sym);
+  }).catch(function(){}).then(function(){
+    setTimeout(scanNext, 500);
+  });
+}
+
 </script>
 </body>
 </html>
