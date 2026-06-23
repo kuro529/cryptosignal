@@ -616,7 +616,8 @@ function scanNext() {
     var fundingRate=fJson&&fJson.data?parseFloat(fJson.data.lastFundingRate||0):null;
     var oi=oiJson&&oiJson.data?parseFloat(oiJson.data.openInterest||0):null;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,null,null);
-    if (signal.type!=="HOLD") scanResults.push(sym);
+    if (signal.type!=="HOLD" || signal.score>=2 || signal.score<=-2) scanResults.push(sym);
+
   }).catch(function(){}).then(function(){
     setTimeout(scanNext, 500);
   });
