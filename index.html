@@ -36,10 +36,6 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .ind-row { display: flex; justify-content: space-between; border-bottom: 1px solid #0f0f1c; padding-bottom: 3px; }
 .ind-label { color: #444; font-size: 11px; }
 .ind-val { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
-.rsi-labels { display: flex; justify-content: space-between; font-size: 11px; color: #555; margin-bottom: 3px; }
-.rsi-track { background: #1a1a2e; border-radius: 4px; height: 6px; overflow: hidden; }
-.rsi-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
-.rsi-desc { display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-top: 2px; }
 .score-bar-track { background: #1a1a2e; border-radius: 4px; height: 8px; overflow: hidden; margin: 4px 0; }
 .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
 .hist { border-top: 1px solid #12121f; padding-top: 8px; }
@@ -79,10 +75,9 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
     </select>
     <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
-    <button class="btn" onclick="toggleAdd()">＋ 追加</button>
-    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
     <button class="btn" onclick="refreshAll()">🔄 更新</button>
-
+    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
+    <button class="btn" onclick="toggleAdd()">＋ 追加</button>
   </div>
 </div>
 <div class="add-bar hidden" id="addBar">
@@ -107,7 +102,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 <div class="footer">BingX API | 投資判断は自己責任でお願いします</div>
 <script>
 var PROXY = "https://bingx-proxy-v83p.onrender.com";
-var POPULAR_DEFAULT = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","H-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","NIL-USDT","ROSE-USDT","CLO-USDT","HYPE-USDT","BEAT-USDT","VELVET-USDT","ENS-USDT","STX-USDT","FIDA-USDT","DASH-USDT","FET-USDT","TAO-USDT","DEXE-USDT","ONDO-USDT","DOGE-USDT","VIRTUAL-USDT","SLX-USDT","NMR-USDT","SUI-USDT","XRP-USDT","SIREN-USDT","RE-USDT","IO-USDT","M-USDT","IDOL-USDT","ID-USDT"];
+var POPULAR_DEFAULT = ["BTC-USDT","SOL-USDT","ZEC-USDT","XMR-USDT","UAI-USDT","VVV-USDT","NIGHT-USDT","AKT-USDT","AR-USDT","H-USDT","NIL-USDT","ROSE-USDT","CRO-USDT","CLO-USDT","HYPE-USDT","BEAT-USDT","GPS-USDT","VELVET-USDT","ENS-USDT","STX-USDT","FIDA-USDT","DASH-USDT","FET-USDT","TAO-USDT","ATH-USDT","DEXE-USDT","KITE-USDT","ONDO-USDT","DOGE-USDT","VIRTUAL-USDT","SLX-USDT","HFT-USDT","ACE-USDT","NMR-USDT","SUI-USDT","XRP-USDT","SIREN-USDT","RE-USDT","IO-USDT","M-USDT","IDOL-USDT"];
 var POPULAR = POPULAR_DEFAULT.slice();
 try {
   var savedPop = localStorage.getItem("popular2");
@@ -271,6 +266,10 @@ function addPairFromInput() {
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
 
+function refreshAll() {
+  for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]);
+}
+
 function fmtPrice(p) {
   if (p==null) return "-";
   if (p<0.01) return p.toFixed(6);
@@ -335,7 +334,6 @@ function calcMACD(closes) {
 function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
   var score=0,reasons=[],details={rsi:0,bb:0,macd:0,fr:0,oi:0};
 
-  // RSI
   if (rsi!==null) {
     var rsiScore=0;
     if (rsi>=95){rsiScore=-2;reasons.push("RSI95超");}
@@ -344,7 +342,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     else if (rsi<=10){rsiScore=2;reasons.push("RSI10以下");}
     else if (rsi<=20){rsiScore=1.5;reasons.push("RSI20以下");}
     else if (rsi<=30){rsiScore=1;reasons.push("RSI30以下");}
-    // 1時間前より上昇/下降
     if (prevPrice!==null&&price!==null) {
       if (price>prevPrice){rsiScore+=1;reasons.push("価格↑");}
       else if (price<prevPrice){rsiScore-=1;reasons.push("価格↓");}
@@ -353,7 +350,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=rsiScore;
   }
 
-  // BB
   if (bb!==null&&price!==null) {
     var bbScore=0;
     if (price<=bb.lower){bbScore=2;reasons.push("BB下限");}
@@ -364,13 +360,12 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=bbScore;
   }
 
-  // MACD (8パターン)
   if (macd!==null) {
     var prevHistAbs = macd.prevHist !== null ? Math.abs(macd.prevHist) : null;
     var curHistAbs = Math.abs(macd.hist);
     var histExpanding = prevHistAbs !== null ? curHistAbs > prevHistAbs : true;
     var macdScore=0;
-        if (macd.macd>0 && macd.macd>macd.signal) {
+    if (macd.macd>0 && macd.macd>macd.signal) {
       if (histExpanding){macdScore=3;reasons.push("MACD強↑拡");}
       else{macdScore=2;reasons.push("MACD強↑縮");}
     } else if (macd.macd>0 && macd.macd<=macd.signal) {
@@ -387,7 +382,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=macdScore;
   }
 
-  // 資金調達率
   if (fundingRate!==null) {
     var frScore=0;
     if (fundingRate>=0.01){frScore=-2;reasons.push("FR高+");}
@@ -400,8 +394,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=frScore;
   }
 
-
-  // OI
   if (oi!==null&&prevOi!==null&&prevOi>0) {
     var oiChange=(oi-prevOi)/prevOi;
     var oiScore=0;
@@ -467,10 +459,8 @@ function fetchAndUpdate(sym) {
     var prevOi=prevOiMap[sym]||null;
     var prevPrice=prevPriceMap[sym]||null;
     if (oi) prevOiMap[sym]=oi;
-    // 1時間前の価格を記録（1時間後に比較）
     if (!prevPriceMap[sym]) prevPriceMap[sym]=price;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice);
-    // 1時間ごとにprevPriceを更新
     if (!prevPriceMap[sym+"_t"]) {
       prevPriceMap[sym+"_t"]=Date.now();
     } else if (Date.now()-prevPriceMap[sym+"_t"]>3600000) {
@@ -487,12 +477,13 @@ function fetchAndUpdate(sym) {
     var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
     var rsiColor=rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
-    var rsiPct=Math.min(100,Math.max(0,rsi||0));
     var scorePct=Math.min(100,Math.max(0,(signal.score+10)/20*100));
     var scoreColor=signal.score>=4?"#00e5a0":signal.score<=-4?"#ff4d6d":"#5577ff";
     var frPct=fundingRate!==null?(fundingRate*100).toFixed(4)+"%":"--";
     var oiStr=oi!==null?(oi/1000000).toFixed(1)+"M":"--";
     var macdStr=macd?parseFloat(macd.macd.toFixed(4))+"/"+parseFloat(macd.signal.toFixed(4)):"--";
+    var bbRate=bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0;
+    var bbRateColor=bbRate>=30?"#ff4d6d":bbRate>=20?"#00e5a0":"#888";
     var d=signal.details;
     var detailStr="RSI:"+d.rsi+" BB:"+d.bb+" MACD:"+d.macd+" FR:"+d.fr+" OI:"+d.oi;
     var histHtml="";
@@ -513,12 +504,13 @@ function fetchAndUpdate(sym) {
         "<span class='badge-details'>"+detailStr+"</span>"+
       "</div>"+
       "<div><div style='display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px'><span>売</span><span style='color:"+scoreColor+"'>総合スコア "+signal.score+"</span><span>買</span></div><div class='score-bar-track'><div class='score-bar-fill' style='width:"+scorePct+"%;background:"+scoreColor+"'></div></div></div>"+
-      "<div><div class='rsi-labels'><span>0</span><span style='color:"+rsiColor+"'>RSI "+rsi+"</span><span>100</span></div><div class='rsi-track'><div class='rsi-fill' style='width:"+rsiPct+"%;background:"+rsiColor+"'></div></div><div class='rsi-desc'><span>過売</span><span>中立</span><span>過買</span></div></div>"+
       "<div class='ind-grid'>"+
+        "<div class='ind-row'><span class='ind-label'>RSI</span><span style='color:"+rsiColor+";font-size:12px;font-weight:600'>"+rsi+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>BB率</span><span style='color:"+bbRateColor+";font-size:12px;font-weight:600'>"+bbRate+"%</span></div>"+
         "<div class='ind-row'><span class='ind-label'>BB上限</span><span class='ind-val'>"+fmtPrice(bb?bb.upper:null)+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>BB下限</span><span class='ind-val'>"+fmtPrice(bb?bb.lower:null)+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>MACD</span><span class='ind-val'>"+macdStr+"</span></div>"+
-        "<div class='ind-row'><span class='ind-label'>資金調達率</span><span class='ind-val' style='color:"+(fundingRate>=0.01?"#ff4d6d":fundingRate<=-0.001?"#00e5a0":"#888")+"'>"+frPct+"</span></div>"+
+        "<div class='ind-row'><span class='ind-label'>資金調達率</span><span class='ind-val' style='color:"+(fundingRate>=0.01?"#ff4d6d":fundingRate<=-0.0001?"#00e5a0":"#888")+"'>"+frPct+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>OI</span><span class='ind-val'>"+oiStr+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>BB中央</span><span class='ind-val'>"+fmtPrice(bb?bb.middle:null)+"</span></div>"+
       "</div>"+histHtml;
@@ -547,50 +539,41 @@ document.getElementById("intervalSelect").addEventListener("change",function(){
   for(var k in timers) clearInterval(timers[k]); timers={};
   for(var i=0;i<pairs.length;i++) loadCard(pairs[i]);
 });
-function refreshAll() {
-  for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]);
-}
 
-renderPopular();
-for(var i=0;i<pairs.length;i++){
-  renderCard(pairs[i]);
-  (function(sym,delay){ setTimeout(function(){ loadCard(sym); }, delay); })(pairs[i], i*2000);
-}
-var scanQueue = [];
-var scanResults = [];
-var scanIndex = 0;
-var scanTotal = 0;
+var scanQueue=[];
+var scanResults=[];
+var scanIndex=0;
+var scanTotal=0;
 
 function startScan() {
-  var btn = document.getElementById("scanBtn");
-  btn.textContent = "⏳ スキャン中...";
-  btn.disabled = true;
-  scanResults = [];
-  // 既に表示中の銘柄を除いたリスト
-  scanQueue = POPULAR.filter(function(p){ return pairs.indexOf(p) < 0; });
-  scanTotal = scanQueue.length;
-  scanIndex = 0;
-  if (scanTotal === 0) { btn.textContent = "🔍 スキャン"; btn.disabled = false; return; }
+  var btn=document.getElementById("scanBtn");
+  btn.textContent="⏳ スキャン中...";
+  btn.disabled=true;
+  scanResults=[];
+  scanQueue=POPULAR.filter(function(p){ return pairs.indexOf(p)<0; });
+  scanTotal=scanQueue.length;
+  scanIndex=0;
+  if (scanTotal===0) { btn.textContent="🔍 スキャン"; btn.disabled=false; return; }
   scanNext();
 }
 
 function scanNext() {
-  var btn = document.getElementById("scanBtn");
-  if (scanIndex >= scanTotal) {
-    btn.textContent = "🔍 スキャン";
-    btn.disabled = false;
-    if (scanResults.length === 0) {
-      showToast("スキャン完了", "シグナルなし", "buy", 3000);
+  var btn=document.getElementById("scanBtn");
+  if (scanIndex>=scanTotal) {
+    btn.textContent="🔍 スキャン";
+    btn.disabled=false;
+    if (scanResults.length===0) {
+      showToast("スキャン完了","シグナルなし","buy",3000);
     } else {
-      showToast("スキャン完了", scanResults.length + "件のシグナル発見！", "buy", 3000);
-      scanResults.forEach(function(sym) {
-        if (pairs.indexOf(sym) < 0) {
+      showToast("スキャン完了",scanResults.length+"件のシグナル発見！","buy",3000);
+      scanResults.forEach(function(sym){
+        if (pairs.indexOf(sym)<0) {
           pairs.unshift(sym);
           savePairs();
           renderCard(sym);
-          var grid = document.getElementById("grid");
-          var card = document.getElementById("card-"+sym);
-          grid.insertBefore(card, grid.firstChild);
+          var grid=document.getElementById("grid");
+          var card=document.getElementById("card-"+sym);
+          grid.insertBefore(card,grid.firstChild);
           loadCard(sym);
           renderPopular();
         }
@@ -598,16 +581,16 @@ function scanNext() {
     }
     return;
   }
-  var sym = scanQueue[scanIndex];
-  btn.textContent = "⏳ "+scanIndex+"/"+scanTotal;
+  var sym=scanQueue[scanIndex];
+  btn.textContent="⏳ "+scanIndex+"/"+scanTotal;
   scanIndex++;
-  var interval = document.getElementById("intervalSelect").value;
+  var interval=document.getElementById("intervalSelect").value;
   Promise.all([
     getJSON(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100"),
     getJSON(PROXY+"/ticker?symbol="+sym),
     getJSON(PROXY+"/funding?symbol="+sym).catch(function(){return null;}),
     getJSON(PROXY+"/oi?symbol="+sym).catch(function(){return null;})
-  ]).then(function(data) {
+  ]).then(function(data){
     var kJson=data[0],tJson=data[1],fJson=data[2],oiJson=data[3];
     var closes=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[4]:d.close);});
     var td=Array.isArray(tJson.data)?tJson.data[0]:tJson.data;
@@ -619,14 +602,16 @@ function scanNext() {
     var prevPrice=prevPriceMap[sym]||null;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice);
     if (signal.type!=="HOLD") scanResults.push(sym);
-
-
-
   }).catch(function(){}).then(function(){
-    setTimeout(scanNext, 500);
+    setTimeout(scanNext,500);
   });
 }
 
+renderPopular();
+for(var i=0;i<pairs.length;i++){
+  renderCard(pairs[i]);
+  (function(sym,delay){ setTimeout(function(){ loadCard(sym); }, delay); })(pairs[i], i*2000);
+}
 </script>
 </body>
 </html>
