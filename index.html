@@ -7,7 +7,7 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif; min-height: 100vh; padding-bottom: 48px; }
-.header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 16px 12px; border-bottom: 1px solid #12121f; flex-wrap: wrap; gap: 10px; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 16px 12px; border-bottom: 1px solid #12121f; flex-wrap: wrap; gap: 10px; position: sticky; top: 0; background: #07070f; z-index: 100; }
 .title { font-size: 20px; font-weight: 800; color: #fff; }
 .subtitle { font-size: 11px; color: #383848; margin-top: 3px; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -73,11 +73,12 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
       <option value="4h">4h</option>
       <option value="1d">1d</option>
     </select>
-    <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
+  <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
-    <button class="btn" onclick="refreshAll()">🔄 更新</button>
-    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
+    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
+    <button class="btn" onclick="refreshAll()">🔄 更新</button>
+
   </div>
 </div>
 <div class="add-bar hidden" id="addBar">
@@ -601,7 +602,8 @@ function scanNext() {
     var prevOi=prevOiMap[sym]||null;
     var prevPrice=prevPriceMap[sym]||null;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice);
-    if (signal.type!=="HOLD") scanResults.push(sym);
+    var bbRate=bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0;
+    if (signal.type!=="HOLD" || bbRate>=20) scanResults.push(sym);
   }).catch(function(){}).then(function(){
     setTimeout(scanNext,500);
   });
