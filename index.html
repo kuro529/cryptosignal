@@ -273,10 +273,12 @@ function refreshAll() {
 
 function fmtPrice(p) {
   if (p==null) return "-";
-  if (p<0.01) return p.toFixed(6);
-  if (p<1) return p.toFixed(4);
-  if (p<100) return p.toFixed(2);
-  return p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (p>=10000) return p.toFixed(1);
+  if (p>=10) return p.toFixed(2);
+  if (p>=1) return p.toFixed(3);
+  if (p>=0.1) return p.toFixed(4);
+  if (p>=0.01) return p.toFixed(5);
+  return p.toFixed(6);
 }
 
 function calcRSI(closes) {
