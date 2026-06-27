@@ -129,8 +129,11 @@ try {
   if (saved) {
     var parsedPairs = JSON.parse(saved);
     if (Array.isArray(parsedPairs) && parsedPairs.length > 0) pairs = parsedPairs;
+  } else {
+    alert("pairs3なし: " + saved);
   }
-} catch(e) {}
+} catch(e) { alert("エラー: " + e.message); }
+
 try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch(e) {}
 
 function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
