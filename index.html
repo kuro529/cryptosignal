@@ -397,7 +397,7 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=frScore;
   }
 
-    if (oi!==null&&prevOi!==null&&prevOi>0) {
+  if (oi!==null&&prevOi!==null&&prevOi>0) {
     var oiChange=(oi-prevOi)/prevOi;
     var oiScore=0;
     if (oiChange>=0.02){oiScore=0;reasons.push("OI+2%↑");}
