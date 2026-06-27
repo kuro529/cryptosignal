@@ -124,7 +124,13 @@ var notifEnabled = false;
 var notifPermission = false;
 var signalLog = [];
 
-try { var saved = localStorage.getItem("pairs3"); if (saved) pairs = JSON.parse(saved); } catch(e) {}
+try {
+  var saved = localStorage.getItem("pairs3");
+  if (saved) {
+    var parsedPairs = JSON.parse(saved);
+    if (Array.isArray(parsedPairs) && parsedPairs.length > 0) pairs = parsedPairs;
+  }
+} catch(e) {}
 try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch(e) {}
 
 function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
