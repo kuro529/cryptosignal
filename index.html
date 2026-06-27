@@ -136,7 +136,13 @@ try {
 
 try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch(e) {}
 
-function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
+function savePairs() {
+  try {
+    localStorage.setItem("pairs3", JSON.stringify(pairs));
+    var check = localStorage.getItem("pairs3");
+    if (!check) alert("保存失敗！");
+  } catch(e) { alert("savePairsエラー: " + e.message); }
+}
 function savePopular() {
   var extra = [];
   for (var si=0; si<POPULAR.length; si++) {
