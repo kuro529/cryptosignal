@@ -425,9 +425,13 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     else if (oiChange<=-0.005) reasons.push("OI-0.5%↓");
   }
 
-  var type="HOLD",strength="-";
-  if (score>=3.5){type="BUY";strength=score>=6?"強":"中";}
-  else if (score<=-3.5){type="SELL";strength=score<=-6?"強":"中";}
+var type="HOLD",strength="-";
+  if (score>=5.5){type="BUY";strength="強";}
+  else if (score>=4.5){type="BUY";strength="中";}
+  else if (score>=3.5){type="BUY";strength="弱";}
+  else if (score<=-5.5){type="SELL";strength="強";}
+  else if (score<=-4.5){type="SELL";strength="中";}
+  else if (score<=-3.5){type="SELL";strength="弱";}
   return {type:type,strength:strength,score:parseFloat(score.toFixed(1)),reason:reasons.join(" ")||"中立",details:details};
 }
 
@@ -508,8 +512,10 @@ function fetchAndUpdate(sym) {
     if (histories[sym].length>0) {
       histHtml="<div class='hist'><div class='hist-label'>直近シグナル</div>";
       for (var i=0;i<histories[sym].length;i++) {
-        var h=histories[sym][i],hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
-        histHtml+="<div class='hist-row'><span style='color:#444;min-width:64px'>"+h.time+"</span><span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span><span style='color:#555'>"+fmtPrice(h.price)+"</span></div>";
+        var h=histories[sym][i];
+        var hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
+        var sc=h.signal.strength==="強"?"#ff4d6d":h.signal.strength==="中"?"#00e5a0":"#5577ff";
+        histHtml+="<div class='hist-row'><span style='color:#444;min-width:64px'>"+h.time+"</span><span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span><span style='color:"+sc+";font-weight:700;font-size:11px'>"+h.signal.strength+"</span><span style='color:#555'>"+fmtPrice(h.price)+"</span></div>";
       }
       histHtml+="</div>";
     }
