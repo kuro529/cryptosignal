@@ -371,13 +371,14 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
 
   if (bb!==null&&price!==null) {
     var bbScore=0;
-    if (price<=bb.lower){bbScore=2;reasons.push("BB下限");}
-    else if (price>=bb.upper){bbScore=-2;reasons.push("BB上限");}
-    else if (price<bb.middle){bbScore=0.5;}
-    else{bbScore=-0.5;}
+    if (price>=bb.upper){bbScore=2;reasons.push("BB上限超");}
+    else if (price>bb.middle){bbScore=1;reasons.push("BB中央↑");}
+    else if (price>bb.lower){bbScore=-1;reasons.push("BB中央↓");}
+    else{bbScore=-2;reasons.push("BB下限割");}
     details.bb=bbScore;
     score+=bbScore;
   }
+
 
   if (macd!==null) {
     var prevHistAbs = macd.prevHist !== null ? Math.abs(macd.prevHist) : null;
