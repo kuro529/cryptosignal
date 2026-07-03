@@ -379,25 +379,25 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     score+=bbScore;
   }
 
-
   if (macd!==null) {
     var prevHistAbs = macd.prevHist !== null ? Math.abs(macd.prevHist) : null;
     var curHistAbs = Math.abs(macd.hist);
     var histExpanding = prevHistAbs !== null ? curHistAbs > prevHistAbs : true;
     var macdScore=0;
     if (macd.macd>0 && macd.macd>macd.signal) {
-      if (histExpanding){macdScore=3;reasons.push("MACD強↑拡");}
-      else{macdScore=2;reasons.push("MACD強↑縮");}
+      if (histExpanding){macdScore=2;reasons.push("MACD強↑拡");}
+      else{macdScore=-1;reasons.push("MACD強↑縮");}
     } else if (macd.macd>0 && macd.macd<=macd.signal) {
-      if (histExpanding){macdScore=-2;reasons.push("MACD弱↓拡");}
+      if (histExpanding){macdScore=-3;reasons.push("MACD弱↓拡");}
       else{macdScore=0;}
     } else if (macd.macd<=0 && macd.macd>macd.signal) {
-      if (histExpanding){macdScore=2;reasons.push("MACD弱↑拡");}
-      else{macdScore=1;reasons.push("MACD弱↑縮");}
+      if (histExpanding){macdScore=3;reasons.push("MACD弱↑拡");}
+      else{macdScore=0;}
     } else {
-      if (histExpanding){macdScore=-3;reasons.push("MACD強↓拡");}
-      else{macdScore=-1;reasons.push("MACD強↓縮");}
+      if (histExpanding){macdScore=-2;reasons.push("MACD強↓拡");}
+      else{macdScore=1;reasons.push("MACD強↓縮");}
     }
+
     details.macd=macdScore;
     score+=macdScore;
   }
