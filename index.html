@@ -622,7 +622,9 @@ function scanNext() {
     var prevOi=prevOiMap[sym]||null;
     var prevPrice=prevPriceMap[sym]||null;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice);
-        if (signal.type!=="HOLD") scanResults.push(sym);
+    var frAbs = fundingRate !== null ? Math.abs(fundingRate) : 0;
+    if (signal.type!=="HOLD" || frAbs>=0.005) scanResults.push(sym);
+
   }).catch(function(){}).then(function(){
     setTimeout(scanNext,500);
   });
