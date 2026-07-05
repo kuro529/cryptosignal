@@ -260,6 +260,7 @@ function addPairFromInput() {
   var input = document.getElementById("pairInput");
   var sym = input.value.toUpperCase().replace("/","-").trim();
   if (!sym) return;
+  if (sym.indexOf("-") < 0) sym = sym + "-USDT";
   if (pairs.indexOf(sym)<0) {
     pairs.unshift(sym);
     savePairs();
