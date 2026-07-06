@@ -26,7 +26,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .pair-name { font-weight: 700; font-size: 16px; color: #fff; }
 .price { font-weight: 700; font-size: 20px; color: #fff; font-variant-numeric: tabular-nums; }
-.x-btn { background: none; border: none; color: #ff8c00; cursor: pointer; font-size: 18px; }
+.x-btn { background: none; border: none; color: #ff8c00; cursor: pointer; font-size: 20px; }
 .badge { border-radius: 9px; padding: 9px 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .badge-type { font-weight: 800; font-size: 16px; }
 .badge-strength { border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
@@ -40,7 +40,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
 .hist { border-top: 1px solid #12121f; padding-top: 8px; }
 .hist-label { color: #333; font-size: 10px; margin-bottom: 5px; }
-.hist-row { display: flex; align-items: center; margin-bottom: 3px; font-size: 11px; gap: 8px; }
+.hist-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 11px; gap: 6px; flex-wrap: wrap; }
 .loading { color: #2a2a44; text-align: center; padding: 24px; font-size: 13px; }
 .error { color: #ff4d6d; font-size: 12px; }
 .footer { text-align: center; color: #222236; font-size: 10px; padding: 16px; }
@@ -81,7 +81,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
   </div>
 </div>
 <div class="add-bar hidden" id="addBar">
-  <input id="pairInput" placeholder="例: DOGE-USDT" />
+  <input id="pairInput" placeholder="例: DOGE または DOGE-USDT" />
   <button class="btn" onclick="addPairFromInput()">追加</button>
 </div>
 <div class="popular" id="popularBtns"></div>
@@ -132,9 +132,13 @@ try {
 } catch(e) {}
 try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch(e) {}
 
-function savePairs() {
-  try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {}
-}
+// histories をlocalStorageから復元
+try {
+  var savedHistories = localStorage.getItem("histories");
+  if (savedHistories) histories = JSON.parse(savedHistories);
+} catch(e) {}
+
+function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
 function savePopular() {
   var extra = [];
   for (var si=0; si<POPULAR.length; si++) {
@@ -143,6 +147,7 @@ function savePopular() {
   try { localStorage.setItem("popular2", JSON.stringify(extra)); } catch(e) {}
 }
 function saveSignalLog() { try { localStorage.setItem("signalLog", JSON.stringify(signalLog.slice(0,200))); } catch(e) {} }
+function saveHistories() { try { localStorage.setItem("histories", JSON.stringify(histories)); } catch(e) {} }
 
 function addSignalLog(sym, signal, price) {
   signalLog.unshift({ time: new Date().toLocaleString("ja-JP"), sym: sym.replace("-","/"), type: signal.type, strength: signal.strength, score: signal.score, reason: signal.reason, price: price });
@@ -220,12 +225,8 @@ function renderPopular() {
 }
 
 var longPressTimer = null;
-function startLongPress(sym) {
-  longPressTimer = setTimeout(function() { removePopularBtn(sym); }, 700);
-}
-function cancelLongPress() {
-  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-}
+function startLongPress(sym) { longPressTimer = setTimeout(function() { removePopularBtn(sym); }, 700); }
+function cancelLongPress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
 function removePopularBtn(sym) {
   if (confirm(sym.replace("-USDT","") + " のボタンを削除しますか？")) {
     var idx = POPULAR.indexOf(sym);
@@ -236,18 +237,14 @@ function removePopularBtn(sym) {
 }
 
 function togglePair(sym) {
-  if (pairs.indexOf(sym)>=0) {
-    removePair(sym);
-  } else {
-    pairs.unshift(sym);
-    savePairs();
-    savePopular();
+  if (pairs.indexOf(sym)>=0) { removePair(sym); }
+  else {
+    pairs.unshift(sym); savePairs(); savePopular();
     renderCard(sym);
-    var grid = document.getElementById("grid");
-    var card = document.getElementById("card-"+sym);
-    grid.insertBefore(card, grid.firstChild);
-    loadCard(sym);
-    renderPopular();
+    var grid=document.getElementById("grid");
+    var card=document.getElementById("card-"+sym);
+    grid.insertBefore(card,grid.firstChild);
+    loadCard(sym); renderPopular();
   }
 }
 
@@ -262,22 +259,18 @@ function addPairFromInput() {
   if (!sym) return;
   if (sym.indexOf("-") < 0) sym = sym + "-USDT";
   if (pairs.indexOf(sym)<0) {
-    pairs.unshift(sym);
-    savePairs();
+    pairs.unshift(sym); savePairs();
     if (POPULAR.indexOf(sym)<0) { POPULAR.push(sym); savePopular(); }
     renderCard(sym);
-    var grid = document.getElementById("grid");
-    var card = document.getElementById("card-"+sym);
-    grid.insertBefore(card, grid.firstChild);
-    loadCard(sym);
-    renderPopular();
+    var grid=document.getElementById("grid");
+    var card=document.getElementById("card-"+sym);
+    grid.insertBefore(card,grid.firstChild);
+    loadCard(sym); renderPopular();
   }
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
 
-function refreshAll() {
-  for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]);
-}
+function refreshAll() { for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]); }
 
 function fmtPrice(p) {
   if (p==null) return "-";
@@ -344,11 +337,10 @@ function calcMACD(closes) {
 
 function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
   var score=0,reasons=[],details={rsi:0,bb:0,macd:0,fr:0,oi:0};
-
   if (rsi!==null) {
     var rsiScore=0;
-    var priceUp = prevPrice!==null&&price!==null&&price>prevPrice;
-    var priceDown = prevPrice!==null&&price!==null&&price<prevPrice;
+    var priceUp=prevPrice!==null&&price!==null&&price>prevPrice;
+    var priceDown=prevPrice!==null&&price!==null&&price<prevPrice;
     if (rsi>=85) {
       if (priceUp){rsiScore=-3;reasons.push("RSI85↑");}
       else if (priceDown){rsiScore=-2;reasons.push("RSI85↓");}
@@ -369,7 +361,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     details.rsi=parseFloat(rsiScore.toFixed(1));
     score+=rsiScore;
   }
-
   if (bb!==null&&price!==null) {
     var bbScore=0;
     if (price>=bb.upper){bbScore=2;reasons.push("BB上限超");}
@@ -379,30 +370,27 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     details.bb=bbScore;
     score+=bbScore;
   }
-
   if (macd!==null) {
-    var prevHistAbs = macd.prevHist !== null ? Math.abs(macd.prevHist) : null;
-    var curHistAbs = Math.abs(macd.hist);
-    var histExpanding = prevHistAbs !== null ? curHistAbs > prevHistAbs : true;
+    var prevHistAbs=macd.prevHist!==null?Math.abs(macd.prevHist):null;
+    var curHistAbs=Math.abs(macd.hist);
+    var histExpanding=prevHistAbs!==null?curHistAbs>prevHistAbs:true;
     var macdScore=0;
-    if (macd.macd>0 && macd.macd>macd.signal) {
+    if (macd.macd>0&&macd.macd>macd.signal) {
       if (histExpanding){macdScore=2;reasons.push("MACD強↑拡");}
       else{macdScore=-1;reasons.push("MACD強↑縮");}
-    } else if (macd.macd>0 && macd.macd<=macd.signal) {
+    } else if (macd.macd>0&&macd.macd<=macd.signal) {
       if (histExpanding){macdScore=-3;reasons.push("MACD弱↓拡");}
       else{macdScore=0;}
-    } else if (macd.macd<=0 && macd.macd>macd.signal) {
+    } else if (macd.macd<=0&&macd.macd>macd.signal) {
       if (histExpanding){macdScore=3;reasons.push("MACD弱↑拡");}
       else{macdScore=0;}
     } else {
       if (histExpanding){macdScore=-2;reasons.push("MACD強↓拡");}
       else{macdScore=1;reasons.push("MACD強↓縮");}
     }
-
     details.macd=macdScore;
     score+=macdScore;
   }
-
   if (fundingRate!==null) {
     var frScore=0;
     if (fundingRate>=0.01){frScore=-2;reasons.push("FR高+");}
@@ -414,8 +402,6 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     details.fr=frScore;
     score+=frScore;
   }
-
-  // OIはスコアなし・表示のみ
   if (oi!==null&&prevOi!==null&&prevOi>0) {
     var oiChange=(oi-prevOi)/prevOi;
     if (oiChange>=0.02) reasons.push("OI+2%↑");
@@ -425,8 +411,7 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     else if (oiChange<=-0.01) reasons.push("OI-1%↓");
     else if (oiChange<=-0.005) reasons.push("OI-0.5%↓");
   }
-
-var type="HOLD",strength="-";
+  var type="HOLD",strength="-";
   if (score>=5.5){type="BUY";strength="強";}
   else if (score>=4.5){type="BUY";strength="中";}
   else if (score>=3.5){type="BUY";strength="弱";}
@@ -445,25 +430,26 @@ function renderCard(sym) {
 }
 
 function getJSON(url) {
-  return new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", url);
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        try { resolve(JSON.parse(xhr.responseText)); }
-        catch(e) { reject(e); }
-      } else { reject(new Error("HTTP " + xhr.status)); }
-    };
-    xhr.onerror = function() { reject(new Error("Network error")); };
-    xhr.timeout = 30000;
-    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+  return new Promise(function(resolve,reject) {
+    var xhr=new XMLHttpRequest();
+    xhr.open("GET",url);
+    xhr.onload=function(){ if(xhr.status===200){ try{resolve(JSON.parse(xhr.responseText));}catch(e){reject(e);} }else{reject(new Error("HTTP "+xhr.status));} };
+    xhr.onerror=function(){ reject(new Error("Network error")); };
+    xhr.timeout=30000;
+    xhr.ontimeout=function(){ reject(new Error("Timeout")); };
     xhr.send();
   });
 }
 
+function clearHistory(sym) {
+  histories[sym] = [];
+  saveHistories();
+  fetchAndUpdate(sym);
+}
+
 function fetchAndUpdate(sym) {
-  var interval = document.getElementById("intervalSelect").value;
-  var card = document.getElementById("card-"+sym);
+  var interval=document.getElementById("intervalSelect").value;
+  var card=document.getElementById("card-"+sym);
   if (!card) return;
   Promise.all([
     getJSON(PROXY+"/kline?symbol="+sym+"&interval="+interval+"&limit=100"),
@@ -491,12 +477,25 @@ function fetchAndUpdate(sym) {
       prevPriceMap[sym+"_t"]=Date.now();
     }
     if (!histories[sym]) histories[sym]=[];
-    var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
-    if (signal.type!=="HOLD"&&signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
-    if (signal.type!=="HOLD") {
-      histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),signal:signal,price:price});
-      if (histories[sym].length>8) histories[sym].pop();
+
+    // 5分以内かつ同じシグナル(type+strength)は重複排除
+    var lastH=histories[sym][0];
+    var isDuplicate=false;
+    if (lastH) {
+      var timeDiff=Date.now()-lastH.timestamp;
+      if (timeDiff<300000 && lastH.signal.type===signal.type && lastH.signal.strength===signal.strength) {
+        isDuplicate=true;
+      }
     }
+
+    var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
+    if (signal.type!=="HOLD"&&!isDuplicate) {
+      if (signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
+      histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),timestamp:Date.now(),signal:signal,price:price});
+      if (histories[sym].length>5) histories[sym].pop();
+      saveHistories();
+    }
+
     var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
     var rsiColor=rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
@@ -509,25 +508,45 @@ function fetchAndUpdate(sym) {
     var bbRateColor=bbRate>=30?"#ff4d6d":bbRate>=20?"#00e5a0":"#888";
     var d=signal.details;
     var detailStr="RSI:"+d.rsi+" BB:"+d.bb+" MACD:"+d.macd+" FR:"+d.fr;
+    var tp=fmtPrice(price*1.05);
+    var sl=fmtPrice(price*0.95);
+
     var histHtml="";
     if (histories[sym].length>0) {
-      histHtml="<div class='hist'><div class='hist-label'>直近シグナル</div>";
+      histHtml="<div class='hist'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:5px'>"+
+          "<span class='hist-label' style='margin-bottom:0'>直近シグナル</span>"+
+          "<button onclick='clearHistory(\""+sym+"\")' style='background:none;border:none;color:#444;cursor:pointer;font-size:11px'>クリア</button>"+
+        "</div>";
       for (var i=0;i<histories[sym].length;i++) {
         var h=histories[sym][i];
-      var hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
+        var hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
         var sc=h.signal.strength==="強"?"#ff4d6d":h.signal.strength==="中"?"#00e5a0":"#5577ff";
         var htp=fmtPrice(h.price*1.05);
         var hsl=fmtPrice(h.price*0.95);
-        histHtml+="<div class='hist-row'><span style='color:#444;min-width:64px'>"+h.time+"</span><span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span><span style='color:"+sc+";font-weight:700;font-size:11px'>"+h.signal.strength+"</span><span style='color:#555'>"+fmtPrice(h.price)+"</span><span style='color:#ff69b4;font-size:11px'>TP:"+htp+"</span><span style='color:#00bcd4;font-size:11px'>SL:"+hsl+"</span></div>";
-
+        histHtml+="<div class='hist-row'>"+
+          "<span style='color:#444;min-width:64px'>"+h.time+"</span>"+
+          "<span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span>"+
+          "<span style='color:"+sc+";font-weight:700;font-size:11px'>"+h.signal.strength+"</span>"+
+          "<span style='color:#555'>"+fmtPrice(h.price)+"</span>"+
+          "<span style='color:#ff69b4;font-size:11px'>TP:"+htp+"</span>"+
+          "<span style='color:#00bcd4;font-size:11px'>SL:"+hsl+"</span>"+
+        "</div>";
       }
       histHtml+="</div>";
     }
-  var tp=fmtPrice(price*1.05);
-    var sl=fmtPrice(price*0.95);
-    card.innerHTML=
-      "<div class='card-header'><div><div class='pair-name'>"+sym.replace("-","/")+"</div><div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div><div style='text-align:right;position:relative;padding-right:24px'><button class='x-btn' style='position:absolute;top:0;right:0' onclick='removePair(\""+sym+"\")'>✕</button><div class='price'>"+fmtPrice(price)+"</div><div style='color:#ff69b4;font-size:12px'>TP: "+tp+" (+5%)</div><div style='color:#00bcd4;font-size:12px'>SL: "+sl+" (-5%)</div></div></div>"+
 
+    card.innerHTML=
+      "<div class='card-header'>"+
+        "<div><div class='pair-name'>"+sym.replace("-","/")+"</div>"+
+        "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div>"+
+        "<div style='text-align:right;position:relative;padding-right:28px'>"+
+          "<button class='x-btn' style='position:absolute;top:0;right:0' onclick='removePair(\""+sym+"\")'>✕</button>"+
+          "<div class='price'>"+fmtPrice(price)+"</div>"+
+          "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" (+5%)</div>"+
+          "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" (-5%)</div>"+
+        "</div>"+
+      "</div>"+
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
@@ -546,7 +565,7 @@ function fetchAndUpdate(sym) {
         "<div class='ind-row'><span class='ind-label'>BB中央</span><span class='ind-val'>"+fmtPrice(bb?bb.middle:null)+"</span></div>"+
       "</div>"+histHtml;
   }).catch(function(e){
-    card.innerHTML="<div class='card-header'><span class='pair-name'>"+sym.replace("-","/")+"</span><button class='x-btn' onclick='removePair(\""+sym+"\")'>✕</button></div><div class='error'>⚠ "+e.message+"</div><button class='btn' onclick='fetchAndUpdate(\""+sym+"\")'>再試行</button>";
+    card.innerHTML="<div class='card-header'><span class='pair-name'>"+sym.replace("-","/")+"</span><button class='x-btn' style='float:right' onclick='removePair(\""+sym+"\")'>✕</button></div><div class='error'>⚠ "+e.message+"</div><button class='btn' onclick='fetchAndUpdate(\""+sym+"\")'>再試行</button>";
   });
 }
 
@@ -575,12 +594,10 @@ var scanQueue=[],scanResults=[],scanIndex=0,scanTotal=0;
 
 function startScan() {
   var btn=document.getElementById("scanBtn");
-  btn.textContent="⏳ スキャン中...";
-  btn.disabled=true;
+  btn.textContent="⏳ スキャン中..."; btn.disabled=true;
   scanResults=[];
   scanQueue=POPULAR.filter(function(p){ return pairs.indexOf(p)<0; });
-  scanTotal=scanQueue.length;
-  scanIndex=0;
+  scanTotal=scanQueue.length; scanIndex=0;
   if (scanTotal===0) { btn.textContent="🔍 スキャン"; btn.disabled=false; return; }
   scanNext();
 }
@@ -588,22 +605,18 @@ function startScan() {
 function scanNext() {
   var btn=document.getElementById("scanBtn");
   if (scanIndex>=scanTotal) {
-    btn.textContent="🔍 スキャン";
-    btn.disabled=false;
-    if (scanResults.length===0) {
-      showToast("スキャン完了","シグナルなし","buy",3000);
-    } else {
+    btn.textContent="🔍 スキャン"; btn.disabled=false;
+    if (scanResults.length===0) { showToast("スキャン完了","シグナルなし","buy",3000); }
+    else {
       showToast("スキャン完了",scanResults.length+"件発見！","buy",3000);
       scanResults.forEach(function(sym){
         if (pairs.indexOf(sym)<0) {
-          pairs.unshift(sym);
-          savePairs();
+          pairs.unshift(sym); savePairs();
           renderCard(sym);
           var grid=document.getElementById("grid");
           var card=document.getElementById("card-"+sym);
           grid.insertBefore(card,grid.firstChild);
-          loadCard(sym);
-          renderPopular();
+          loadCard(sym); renderPopular();
         }
       });
     }
@@ -629,12 +642,9 @@ function scanNext() {
     var prevOi=prevOiMap[sym]||null;
     var prevPrice=prevPriceMap[sym]||null;
     var signal=calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice);
-    var frAbs = fundingRate !== null ? Math.abs(fundingRate) : 0;
-    if (signal.type!=="HOLD" || frAbs>=0.005) scanResults.push(sym);
-
-  }).catch(function(){}).then(function(){
-    setTimeout(scanNext,500);
-  });
+    var frAbs=fundingRate!==null?Math.abs(fundingRate):0;
+    if (signal.type!=="HOLD"||frAbs>=0.005) scanResults.push(sym);
+  }).catch(function(){}).then(function(){ setTimeout(scanNext,500); });
 }
 
 renderPopular();
