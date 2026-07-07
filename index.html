@@ -363,10 +363,10 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
   }
   if (bb!==null&&price!==null) {
     var bbScore=0;
-    if (price>=bb.upper){bbScore=2;reasons.push("BB上限超");}
-    else if (price>bb.middle){bbScore=1;reasons.push("BB中央↑");}
-    else if (price>bb.lower){bbScore=-1;reasons.push("BB中央↓");}
-    else{bbScore=-2;reasons.push("BB下限割");}
+    if (price<=bb.lower){bbScore=2;reasons.push("BB下限");}
+    else if (price>=bb.upper){bbScore=-2;reasons.push("BB上限");}
+    else if (price<bb.middle){bbScore=0.5;}
+    else{bbScore=-0.5;}
     details.bb=bbScore;
     score+=bbScore;
   }
@@ -412,12 +412,12 @@ function calcScore(rsi,bb,price,macd,fundingRate,oi,prevOi,prevPrice) {
     else if (oiChange<=-0.005) reasons.push("OI-0.5%↓");
   }
   var type="HOLD",strength="-";
-  if (score>=5.5){type="BUY";strength="強";}
-  else if (score>=4.5){type="BUY";strength="中";}
-  else if (score>=3.5){type="BUY";strength="弱";}
-  else if (score<=-5.5){type="SELL";strength="強";}
-  else if (score<=-4.5){type="SELL";strength="中";}
-  else if (score<=-3.5){type="SELL";strength="弱";}
+  if (score>=6){type="BUY";strength="強";}
+  else if (score>=5){type="BUY";strength="中";}
+  else if (score>=4){type="BUY";strength="弱";}
+  else if (score<=-6){type="SELL";strength="強";}
+  else if (score<=-5){type="SELL";strength="中";}
+  else if (score<=-4){type="SELL";strength="弱";}
   return {type:type,strength:strength,score:parseFloat(score.toFixed(1)),reason:reasons.join(" ")||"中立",details:details};
 }
 
