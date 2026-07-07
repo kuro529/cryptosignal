@@ -513,10 +513,12 @@ function fetchAndUpdate(sym) {
         // BB率に連動してTP/SL自動計算
     var tpPct = bbRate >= 30 ? 0.15 : bbRate >= 20 ? 0.10 : bbRate >= 10 ? 0.05 : 0.03;
     var slPct = tpPct / 2;
-    var tp=fmtPrice(price*(1+tpPct));
-    var sl=fmtPrice(price*(1-slPct));
-    var tpLabel="+"+Math.round(tpPct*100)+"%";
-    var slLabel="-"+Math.round(slPct*100)+"%";
+    var isSell = signal.type === "SELL";
+    var tp = isSell ? fmtPrice(price*(1-tpPct)) : fmtPrice(price*(1+tpPct));
+    var sl = isSell ? fmtPrice(price*(1+slPct)) : fmtPrice(price*(1-slPct));
+    var tpLabel = isSell ? "-"+Math.round(tpPct*100)+"%" : "+"+Math.round(tpPct*100)+"%";
+    var slLabel = isSell ? "+"+Math.round(slPct*100)+"%" : "-"+Math.round(slPct*100)+"%";
+
     var histHtml="";
     if (histories[sym].length>0) {
       histHtml="<div class='hist'>"+
@@ -531,8 +533,10 @@ function fetchAndUpdate(sym) {
         var hbbRate=h.bbRate||bbRate;
         var htpPct=hbbRate>=30?0.15:hbbRate>=20?0.10:hbbRate>=10?0.05:0.03;
         var hslPct=htpPct/2;
-        var htp=fmtPrice(h.price*(1+htpPct));
-        var hsl=fmtPrice(h.price*(1-hslPct));
+        var hIsSell=h.signal.type==="SELL";
+        var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
+        var hsl=hIsSell?fmtPrice(h.price*(1+hslPct)):fmtPrice(h.price*(1-hslPct));
+
         histHtml+="<div class='hist-row'>"+
           "<span style='color:#444;min-width:64px'>"+h.time+"</span>"+
           "<span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span>"+
