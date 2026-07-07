@@ -573,6 +573,7 @@ function removePair(sym) {
   var idx=pairs.indexOf(sym); if (idx>=0) pairs.splice(idx,1);
   savePairs();
   if (timers[sym]){clearInterval(timers[sym]);delete timers[sym];}
+  // historiesは消さずに保持
   var card=document.getElementById("card-"+sym); if(card) card.parentNode.removeChild(card);
   renderPopular();
 }
