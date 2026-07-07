@@ -492,8 +492,8 @@ function fetchAndUpdate(sym) {
     if (signal.type!=="HOLD"&&!isDuplicate) {
       if (signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
     var now=new Date();
-      var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
-      histories[sym].unshift({time:timeStr,timestamp:Date.now(),signal:signal,price:price});
+    var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
+      histories[sym].unshift({time:timeStr,timestamp:Date.now(),signal:signal,price:price,bbRate:bbRate});
       if (histories[sym].length>5) histories[sym].pop();
       saveHistories();
     }
@@ -510,9 +510,13 @@ function fetchAndUpdate(sym) {
     var bbRateColor=bbRate>=30?"#ff4d6d":bbRate>=20?"#00e5a0":"#888";
     var d=signal.details;
     var detailStr="RSI:"+d.rsi+" BB:"+d.bb+" MACD:"+d.macd+" FR:"+d.fr;
-    var tp=fmtPrice(price*1.05);
-    var sl=fmtPrice(price*0.95);
-
+        // BB率に連動してTP/SL自動計算
+    var tpPct = bbRate >= 30 ? 0.15 : bbRate >= 20 ? 0.10 : bbRate >= 10 ? 0.05 : 0.03;
+    var slPct = tpPct / 2;
+    var tp=fmtPrice(price*(1+tpPct));
+    var sl=fmtPrice(price*(1-slPct));
+    var tpLabel="+"+Math.round(tpPct*100)+"%";
+    var slLabel="-"+Math.round(slPct*100)+"%";
     var histHtml="";
     if (histories[sym].length>0) {
       histHtml="<div class='hist'>"+
@@ -524,8 +528,11 @@ function fetchAndUpdate(sym) {
         var h=histories[sym][i];
         var hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
         var sc=h.signal.strength==="強"?"#ff4d6d":h.signal.strength==="中"?"#00e5a0":"#5577ff";
-        var htp=fmtPrice(h.price*1.05);
-        var hsl=fmtPrice(h.price*0.95);
+        var hbbRate=h.bbRate||bbRate;
+        var htpPct=hbbRate>=30?0.15:hbbRate>=20?0.10:hbbRate>=10?0.05:0.03;
+        var hslPct=htpPct/2;
+        var htp=fmtPrice(h.price*(1+htpPct));
+        var hsl=fmtPrice(h.price*(1-hslPct));
         histHtml+="<div class='hist-row'>"+
           "<span style='color:#444;min-width:64px'>"+h.time+"</span>"+
           "<span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span>"+
@@ -545,8 +552,9 @@ function fetchAndUpdate(sym) {
         "<div style='text-align:right;position:relative;padding-right:28px'>"+
           "<button class='x-btn' style='position:absolute;top:0;right:0' onclick='removePair(\""+sym+"\")'>✕</button>"+
           "<div class='price'>"+fmtPrice(price)+"</div>"+
-          "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" (+5%)</div>"+
-          "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" (-5%)</div>"+
+          "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
+          "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
+
         "</div>"+
       "</div>"+
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
