@@ -491,7 +491,9 @@ function fetchAndUpdate(sym) {
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
     if (signal.type!=="HOLD"&&!isDuplicate) {
       if (signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
-      histories[sym].unshift({time:new Date().toLocaleTimeString("ja-JP"),timestamp:Date.now(),signal:signal,price:price});
+    var now=new Date();
+      var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
+      histories[sym].unshift({time:timeStr,timestamp:Date.now(),signal:signal,price:price});
       if (histories[sym].length>5) histories[sym].pop();
       saveHistories();
     }
@@ -515,7 +517,7 @@ function fetchAndUpdate(sym) {
     if (histories[sym].length>0) {
       histHtml="<div class='hist'>"+
         "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:5px'>"+
-          "<span class='hist-label' style='margin-bottom:0'>直近シグナル</span>"+
+          "<span class='hist-label' style='margin-bottom:0'>シグナル履歴</span>"+
           "<button onclick='clearHistory(\""+sym+"\")' style='background:none;border:none;color:#444;cursor:pointer;font-size:11px'>クリア</button>"+
         "</div>";
       for (var i=0;i<histories[sym].length;i++) {
