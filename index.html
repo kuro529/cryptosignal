@@ -723,7 +723,7 @@ function fetchAndUpdate(sym) {
         var hSym=h.signal.type==="BUY"?"▲":h.signal.type==="SELL"?"▼":"●";
         var hc=h.signal.type==="BUY"?"#00e5a0":h.signal.type==="SELL"?"#ff4d6d":"#8888bb";
         var hTrend=h.trendScore!==undefined?h.trendScore:0;
-        var htColor=hTrend>2?"#00e5a0":hTrend<-2?"#ff4d6d":"#888888";
+        var htColor=hTrend>2?"#ff69b4":hTrend<-2?"#00bcd4":"#8888bb";
         var hbbRate=h.bbRate||0;
         var htpPct=hbbRate>=50?0.10:hbbRate>=30?0.08:hbbRate>=10?0.06:0.04;
         var hIsSell=h.signal.type==="SELL";
@@ -732,8 +732,8 @@ function fetchAndUpdate(sym) {
          histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
           "<span style='color:#444;min-width:56px;font-size:10px'>"+h.time+"</span>"+
           "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+" "+h.signal.strength+"</span>"+
-          "<span style='color:"+hc+";font-size:10px;font-weight:700'>S"+h.signal.score+"</span>"+
-          "<span style='color:"+htColor+";font-size:11px;font-weight:700'>T"+hTrend+"</span>"+
+          "<span style='color:"+hc+";font-size:11px;font-weight:700'>"+h.signal.score+"/</span>"+
+          "<span style='color:"+htColor+";font-size:11px;font-weight:700'>"+hTrend+"</span>"+
           "<span style='color:#ff4d6d;font-weight:700'>"+fmtPrice(h.price)+"</span>"+
           "<span style='color:#ff69b4;font-size:10px'>TP:"+htp+"</span>"+
           "<span style='color:#00bcd4;font-size:10px'>SL:"+hsl+"</span>"+
@@ -760,7 +760,7 @@ function fetchAndUpdate(sym) {
         "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
-        "<span style='background:"+(trend.score>=2?"#00e5a030":trend.score<=-2?"#ff4d6d30":"#5577ff30")+";color:"+(trend.score>=2?"#00e5a0":trend.score<=-2?"#ff4d6d":"#5577ff")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
+        "<span style='background:"+(trend.score>2?"#ff69b430":trend.score<-2?"#00bcd430":"#8888bb30")+";color:"+(trend.score>2?"#ff69b4":trend.score<-2?"#00bcd4":"#8888bb")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
         "<span class='badge-reason'>スコア:"+signal.score+" | "+signal.reason+"</span>"+
         "<span class='badge-details'>"+detailStr+" | "+trend.reason+"</span>"+
       "</div>"+
