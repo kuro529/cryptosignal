@@ -704,13 +704,12 @@ function fetchAndUpdate(sym) {
         var hIsSell=h.signal.type==="SELL";
         var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
         var hsl=hIsSell?fmtPrice(h.price*(1+htpPct)):fmtPrice(h.price*(1-htpPct));
-          histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
+         histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
           "<span style='color:#444;min-width:56px;font-size:10px'>"+h.time+"</span>"+
-          "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+"</span>"+
-          "<span style='color:"+hc+";font-size:10px'>"+h.signal.strength+"</span>"+
+          "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+" "+h.signal.strength+"</span>"+
           "<span style='color:"+hc+";font-size:10px;font-weight:700'>S"+h.signal.score+"</span>"+
-          "<span style='color:#555;font-size:11px'>"+fmtPrice(h.price)+"</span>"+
           "<span style='color:"+htColor+";font-size:11px;font-weight:700'>T"+hTrend+"</span>"+
+          "<span style='color:#ff4d6d;font-weight:700'>"+fmtPrice(h.price)+"</span>"+
           "<span style='color:#ff69b4;font-size:10px'>TP:"+htp+"</span>"+
           "<span style='color:#00bcd4;font-size:10px'>SL:"+hsl+"</span>"+
         "</div>";
