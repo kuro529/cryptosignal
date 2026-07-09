@@ -497,12 +497,15 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   // ① MACD
   if (macd!==null) {
     var macdScore=0;
-    macdScore += macd.macd>0 ? 1 : -1;
-    macdScore += macd.macd>macd.signal ? 1 : -1;
-    if (macdPrev!==null) {
-      var curHistAbs=Math.abs(macd.hist);
-      var prevHistAbs=Math.abs(macdPrev.hist);
-      macdScore += curHistAbs>prevHistAbs ? 1 : -1;
+    var histExpanding = macdPrev!==null ? Math.abs(macd.hist)>Math.abs(macdPrev.hist) : true;
+    if (macd.macd>0 && macd.macd>macd.signal) {
+      macdScore = histExpanding ? 3 : 2;
+    } else if (macd.macd>0 && macd.macd<=macd.signal) {
+      macdScore = 1;
+    } else if (macd.macd<=0 && macd.macd>macd.signal) {
+      macdScore = -1;
+    } else {
+      macdScore = histExpanding ? -3 : -2;
     }
     details.macd=macdScore;
     score+=macdScore;
