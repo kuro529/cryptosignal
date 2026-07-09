@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -78,6 +78,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
     <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
     <button class="btn" onclick="refreshAll()">🔄 更新</button>
+    <a href="settings.html" class="btn" style="text-decoration:none;display:inline-block">⚙️ 設定</a>
   </div>
 </div>
 <div class="add-bar hidden" id="addBar">
@@ -134,6 +135,31 @@ try { signalLog = JSON.parse(localStorage.getItem("signalLog") || "[]"); } catch
 try {
   var savedHistories = localStorage.getItem("histories");
   if (savedHistories) histories = JSON.parse(savedHistories);
+} catch(e) {}
+
+var SETTINGS_DEFAULT = {
+  rsiHigh1:85, rsiHigh1Score:-2,
+  rsiHigh2:70, rsiHigh2Score:-1,
+  rsiLow1:15, rsiLow1Score:2,
+  rsiLow2:30, rsiLow2Score:1,
+  rsiTrendScore:2,
+  bbLowerScore:2, bbUpperScore:-2, bbMidUpScore:0.5, bbMidDownScore:-0.5,
+  bbCrossUpperScore:-2, bbCrossLowerScore:2, bbCrossMidUpScore:1, bbCrossMidDownScore:-1,
+  macd1:3, macd2:2, macd3:1, macd4:-1, macd5:-2, macd6:-3,
+  frHigh1:0.01, frHigh1Score:-2,
+  frHigh2:0.0001, frHigh2Score:-1,
+  frLow1:-0.01, frLow1Score:2,
+  frLow2:-0.0001, frLow2Score:1.5,
+  frLow3:-0.00005, frLow3Score:1,
+  thWeak:3.5, thMid:5.5, thStrong:7.5
+};
+var SETTINGS = JSON.parse(JSON.stringify(SETTINGS_DEFAULT));
+try {
+  var savedSettings = localStorage.getItem("appSettings");
+  if (savedSettings) {
+    var parsed = JSON.parse(savedSettings);
+    for (var k in parsed) SETTINGS[k] = parsed[k];
+  }
 } catch(e) {}
 
 function savePairs() { try { localStorage.setItem("pairs3", JSON.stringify(pairs)); } catch(e) {} }
@@ -280,7 +306,6 @@ function fmtPrice(p) {
   return p.toFixed(6);
 }
 
-// closes配列全体を受け取り、指定インデックスまでのRSIを計算するヘルパー
 function calcRSIAt(closes, idx) {
   var period=14;
   if (idx<period) return null;
@@ -294,16 +319,10 @@ function calcRSIAt(closes, idx) {
   return parseFloat((100-100/(1+ag/al)).toFixed(1));
 }
 
-function calcRSI(closes) {
-  return calcRSIAt(closes, closes.length-1);
-}
-
-function calcRSIPrev(closes) {
-  return calcRSIAt(closes, closes.length-2);
-}
+function calcRSI(closes) { return calcRSIAt(closes, closes.length-1); }
+function calcRSIPrev(closes) { return calcRSIAt(closes, closes.length-2); }
 
 function calcRSIAvg14(closes) {
-  // 最後の14本のRSI値の平均ではなく、"14本の終値平均"という意味なら単純平均
   var period=14;
   if (closes.length<period) return null;
   var slice=closes.slice(-period);
@@ -351,14 +370,9 @@ function calcMACDAt(closes, endIdx) {
   return {macd:macdLine,signal:sig,hist:macdLine-sig};
 }
 
-function calcMACD(closes) {
-  return calcMACDAt(closes, closes.length-1);
-}
+function calcMACD(closes) { return calcMACDAt(closes, closes.length-1); }
+function calcMACDPrev(closes) { return calcMACDAt(closes, closes.length-2); }
 
-function calcMACDPrev(closes) {
-  return calcMACDAt(closes, closes.length-2);
-}
-  
 function calcADX(highs, lows, closes, period) {
   period = period || 14;
   if (closes.length < period*2) return null;
@@ -395,11 +409,7 @@ function calcADX(highs, lows, closes, period) {
   if (dx.length < period) return null;
   var adxArr = smooth(dx, period).map(function(v){return v/period;});
   var lastIdx = adxArr.length-1;
-  return {
-    adx: adxArr[lastIdx],
-    plusDI: plusDI[plusDI.length-1],
-    minusDI: minusDI[minusDI.length-1]
-  };
+  return { adx: adxArr[lastIdx], plusDI: plusDI[plusDI.length-1], minusDI: minusDI[minusDI.length-1] };
 }
 
 function calcATR(highs, lows, closes, period) {
@@ -407,11 +417,7 @@ function calcATR(highs, lows, closes, period) {
   if (closes.length < period+1) return null;
   var trs = [];
   for (var i=1; i<closes.length; i++) {
-    var tr = Math.max(
-      highs[i]-lows[i],
-      Math.abs(highs[i]-closes[i-1]),
-      Math.abs(lows[i]-closes[i-1])
-    );
+    var tr = Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]));
     trs.push(tr);
   }
   var recentTrs = trs.slice(-period);
@@ -421,7 +427,6 @@ function calcATR(highs, lows, closes, period) {
 function calcTrendIndexRaw(closes, highs, lows) {
   var trendScore = 0;
   var details = [];
-
   var ema12 = calcEMA(closes, 12);
   var ema26 = calcEMA(closes, 26);
   var atr = calcATR(highs, lows, closes, 14);
@@ -440,7 +445,6 @@ function calcTrendIndexRaw(closes, highs, lows) {
     trendScore += emaScore;
     details.push("EMA乖離:"+emaScore);
   }
-
   var adxData = calcADX(highs, lows, closes, 14);
   if (adxData) {
     var adxScore = 0;
@@ -452,33 +456,26 @@ function calcTrendIndexRaw(closes, highs, lows) {
     trendScore += adxScore;
     details.push("ADX:"+adxScore);
   }
-
   return { score: parseFloat(trendScore.toFixed(1)), reason: details.join(" ") };
 }
-
 
 var trendHistoryMap = {};
 
 function calcTrendIndex(closes, highs, lows, sym, interval) {
   var raw = calcTrendIndexRaw(closes, highs, lows);
   if (!sym) return raw;
-
   var ms={"1m":60000,"5m":300000,"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
   var barMs = ms[interval] || 3600000;
-
   if (!trendHistoryMap[sym]) trendHistoryMap[sym] = [];
   var arr = trendHistoryMap[sym];
   var last = arr[arr.length-1];
-
-  // 現在の時間足が確定したタイミングか判定（barMsごとに1回だけ追加）
   var nowBarId = Math.floor(Date.now()/barMs);
   if (!last || last.barId !== nowBarId) {
     arr.push({barId: nowBarId, score: raw.score});
     if (arr.length > 3) arr.shift();
   } else {
-    arr[arr.length-1].score = raw.score; // 同じ足の間は最新値で更新
+    arr[arr.length-1].score = raw.score;
   }
-
   var avgScore = arr.reduce(function(a,b){return a+b.score;},0)/arr.length;
   return { score: parseFloat(avgScore.toFixed(1)), reason: raw.reason };
 }
@@ -494,68 +491,63 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   var macd = calcMACD(closes);
   var macdPrev = calcMACDPrev(closes);
 
-  // ① MACD
+  // MACD
   if (macd!==null) {
     var macdScore=0;
     var histExpanding = macdPrev!==null ? Math.abs(macd.hist)>Math.abs(macdPrev.hist) : true;
     if (macd.macd>0 && macd.macd>macd.signal) {
-      macdScore = histExpanding ? 3 : 2;
+      macdScore = histExpanding ? SETTINGS.macd1 : SETTINGS.macd2;
     } else if (macd.macd>0 && macd.macd<=macd.signal) {
-      macdScore = 1;
+      macdScore = SETTINGS.macd3;
     } else if (macd.macd<=0 && macd.macd>macd.signal) {
-      macdScore = -1;
+      macdScore = SETTINGS.macd4;
     } else {
-      macdScore = histExpanding ? -3 : -2;
+      macdScore = histExpanding ? SETTINGS.macd6 : SETTINGS.macd5;
     }
     details.macd=macdScore;
     score+=macdScore;
     reasons.push("MACD:"+macdScore);
   }
 
-  // ② RSI
+  // RSI
   if (rsi!==null) {
     var rsiScore=0;
     if (rsiAvg14!==null && rsiPrev!==null) {
-      if (rsi>rsiAvg14 && rsi>rsiPrev) { rsiScore+=2; }
-      else if (rsi<rsiAvg14 && rsi<rsiPrev) { rsiScore-=2; }
+      if (rsi>rsiAvg14 && rsi>rsiPrev) { rsiScore+=SETTINGS.rsiTrendScore; }
+      else if (rsi<rsiAvg14 && rsi<rsiPrev) { rsiScore-=SETTINGS.rsiTrendScore; }
     }
-    if (rsi>=85) rsiScore-=2;
-    else if (rsi>=70) rsiScore-=1;
-    if (rsi<=15) rsiScore+=2;
-    else if (rsi<=30) rsiScore+=1;
+    if (rsi>=SETTINGS.rsiHigh1) rsiScore+=SETTINGS.rsiHigh1Score;
+    else if (rsi>=SETTINGS.rsiHigh2) rsiScore+=SETTINGS.rsiHigh2Score;
+    if (rsi<=SETTINGS.rsiLow1) rsiScore+=SETTINGS.rsiLow1Score;
+    else if (rsi<=SETTINGS.rsiLow2) rsiScore+=SETTINGS.rsiLow2Score;
     details.rsi=rsiScore;
     score+=rsiScore;
     if (rsiScore!==0) reasons.push("RSI:"+rsiScore);
   }
 
-  // ③ BB
+  // BB
   if (bb!==null&&price!==null) {
     var bbScore=0;
-    if (price<=bb.lower){bbScore+=2;reasons.push("BB下限");}
-    else if (price>=bb.upper){bbScore-=2;reasons.push("BB上限");}
-    else if (price<bb.middle){bbScore+=0.5;}
-    else{bbScore-=0.5;}
+    if (price<=bb.lower){bbScore+=SETTINGS.bbLowerScore;reasons.push("BB下限");}
+    else if (price>=bb.upper){bbScore+=SETTINGS.bbUpperScore;reasons.push("BB上限");}
+    else if (price<bb.middle){bbScore+=SETTINGS.bbMidUpScore;}
+    else{bbScore+=SETTINGS.bbMidDownScore;}
 
-    // 1時間前とのクロス判定
     if (bbPrev!==null) {
       var prevClose = closes[closes.length-2];
-      // 上限クロス（上→下）
-      if (prevClose >= bbPrev.upper && price < bb.upper) { bbScore-=2; reasons.push("BB上限下抜"); }
-      // 下限クロス（下→上）
-      if (prevClose <= bbPrev.lower && price > bb.lower) { bbScore+=2; reasons.push("BB下限上抜"); }
-      // 中央クロス（上→下）
-      if (prevClose >= bbPrev.middle && price < bb.middle) { bbScore-=1; reasons.push("BB中央下抜"); }
-      // 中央クロス（下→上）
-      if (prevClose <= bbPrev.middle && price > bb.middle) { bbScore+=1; reasons.push("BB中央上抜"); }
+      if (prevClose >= bbPrev.upper && price < bb.upper) { bbScore+=SETTINGS.bbCrossUpperScore; reasons.push("BB上限下抜"); }
+      if (prevClose <= bbPrev.lower && price > bb.lower) { bbScore+=SETTINGS.bbCrossLowerScore; reasons.push("BB下限上抜"); }
+      if (prevClose >= bbPrev.middle && price < bb.middle) { bbScore+=SETTINGS.bbCrossMidDownScore; reasons.push("BB中央下抜"); }
+      if (prevClose <= bbPrev.middle && price > bb.middle) { bbScore+=SETTINGS.bbCrossMidUpScore; reasons.push("BB中央上抜"); }
     }
     details.bb=parseFloat(bbScore.toFixed(1));
     score+=bbScore;
   }
 
-  // ⑤ 出来高（直近完成足 vs 過去20本平均）
+  // 出来高
   var volScore=0;
   if (volumes && volumes.length>=21) {
-    var completedVolumes = volumes.slice(0,-1); // 現在進行中を除く
+    var completedVolumes = volumes.slice(0,-1);
     var recentVol = completedVolumes[completedVolumes.length-1];
     var avgVol = completedVolumes.slice(-21,-1).reduce(function(a,b){return a+b;},0)/20;
     var priceUpNow = closes.length>=2 && closes[closes.length-1]>closes[closes.length-2];
@@ -569,20 +561,20 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   details.vol=volScore;
   score+=volScore;
 
-  // ④ 資金調達率
+  // 資金調達率
   if (fundingRate!==null) {
     var frScore=0;
-    if (fundingRate>=0.01){frScore=-2;reasons.push("FR高+");}
-    else if (fundingRate>=0.0001){frScore=-1;reasons.push("FR中+");}
-    else if (fundingRate<=-0.01){frScore=2;reasons.push("FR高-");}
-    else if (fundingRate<=-0.0001){frScore=1.5;reasons.push("FR中-");}
-    else if (fundingRate<=-0.00005){frScore=1;reasons.push("FR低-");}
+    if (fundingRate>=SETTINGS.frHigh1){frScore=SETTINGS.frHigh1Score;reasons.push("FR高+");}
+    else if (fundingRate>=SETTINGS.frHigh2){frScore=SETTINGS.frHigh2Score;reasons.push("FR中+");}
+    else if (fundingRate<=SETTINGS.frLow1){frScore=SETTINGS.frLow1Score;reasons.push("FR高-");}
+    else if (fundingRate<=SETTINGS.frLow2){frScore=SETTINGS.frLow2Score;reasons.push("FR中-");}
+    else if (fundingRate<=SETTINGS.frLow3){frScore=SETTINGS.frLow3Score;reasons.push("FR低-");}
     else if (fundingRate<0){frScore=0.5;}
     details.fr=frScore;
     score+=frScore;
   }
 
-  // ⑥ OI（アプリ起動中のみ比較可能）
+  // OI
   if (oi!==null&&prevOi!==null&&prevOi>0) {
     var oiChange=(oi-prevOi)/prevOi;
     var priceUpOi = closes.length>=2 && closes[closes.length-1]>closes[closes.length-2];
@@ -599,12 +591,12 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   }
 
   var type="HOLD",strength="-";
-  if (score>=9){type="BUY";strength="強";}
-  else if (score>=7){type="BUY";strength="中";}
-  else if (score>=5){type="BUY";strength="弱";}
-  else if (score<=-9){type="SELL";strength="強";}
-  else if (score<=-7){type="SELL";strength="中";}
-  else if (score<=-5){type="SELL";strength="弱";}
+  if (score>=SETTINGS.thStrong){type="BUY";strength="強";}
+  else if (score>=SETTINGS.thMid){type="BUY";strength="中";}
+  else if (score>=SETTINGS.thWeak){type="BUY";strength="弱";}
+  else if (score<=-SETTINGS.thStrong){type="SELL";strength="強";}
+  else if (score<=-SETTINGS.thMid){type="SELL";strength="中";}
+  else if (score<=-SETTINGS.thWeak){type="SELL";strength="弱";}
 
   return {type:type,strength:strength,score:parseFloat(score.toFixed(1)),reason:reasons.join(" ")||"中立",details:details,rsi:rsi,bb:bb,macd:macd};
 }
@@ -628,7 +620,7 @@ function getJSON(url) {
     xhr.send();
   });
 }
-  
+
 function recordSignal(sym) {
   var cur = window["_current_"+sym];
   if (!cur) return;
@@ -636,12 +628,8 @@ function recordSignal(sym) {
   var now=new Date();
   var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
   histories[sym].unshift({
-    time:timeStr,
-    timestamp:Date.now(),
-    signal:cur.signal,
-    price:cur.price,
-    bbRate:cur.bbRate,
-    trendScore:cur.trend.score
+    time:timeStr, timestamp:Date.now(), signal:cur.signal, price:cur.price,
+    bbRate:cur.bbRate, trendScore:cur.trend.score
   });
   if (histories[sym].length>5) histories[sym].pop();
   saveHistories();
@@ -687,14 +675,13 @@ function fetchAndUpdate(sym) {
       fireSignalNotif(sym,signal,price);
       addSignalLog(sym,signal,price);
     }
-    // 現在のシグナル・価格・トレンドを保持（記録ボタン用）
     window["_current_"+sym] = {signal:signal, price:price, bbRate: bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0, trend:trend};
 
     var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
     var rsiColor=rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
     var scorePct=Math.min(100,Math.max(0,(signal.score+15)/30*100));
-    var scoreColor=signal.score>=5?"#00e5a0":signal.score<=-5?"#ff4d6d":"#5577ff";
+    var scoreColor=signal.score>=SETTINGS.thWeak?"#00e5a0":signal.score<=-SETTINGS.thWeak?"#ff4d6d":"#5577ff";
     var frPct=fundingRate!==null?(fundingRate*100).toFixed(4)+"%":"--";
     var oiStr=oi!==null?(oi/1000000).toFixed(1)+"M":"--";
     var macdStr=macd?parseFloat(macd.macd.toFixed(4))+"/"+parseFloat(macd.signal.toFixed(4)):"--";
@@ -718,7 +705,7 @@ function fetchAndUpdate(sym) {
           "<span class='hist-label' style='margin-bottom:0'>シグナル履歴</span>"+
           "<button onclick='clearHistory(\""+sym+"\")' style='background:none;border:none;color:#444;cursor:pointer;font-size:11px'>クリア</button>"+
         "</div>";
-    for (var i=0;i<histories[sym].length;i++) {
+      for (var i=0;i<histories[sym].length;i++) {
         var h=histories[sym][i];
         var hSym=h.signal.type==="BUY"?"▲":h.signal.type==="SELL"?"▼":"●";
         var hc=h.signal.type==="BUY"?"#00e5a0":h.signal.type==="SELL"?"#ff4d6d":"#8888bb";
@@ -729,7 +716,7 @@ function fetchAndUpdate(sym) {
         var hIsSell=h.signal.type==="SELL";
         var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
         var hsl=hIsSell?fmtPrice(h.price*(1+htpPct)):fmtPrice(h.price*(1-htpPct));
-         histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
+        histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
           "<span style='color:#444;min-width:56px;font-size:10px'>"+h.time+"</span>"+
           "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+" "+h.signal.strength+"</span>"+
           "<span style='color:"+hc+";font-size:11px;font-weight:700'>"+h.signal.score+"/</span>"+
@@ -739,11 +726,10 @@ function fetchAndUpdate(sym) {
           "<span style='color:#00bcd4;font-size:10px'>SL:"+hsl+"</span>"+
         "</div>";
       }
-
       histHtml+="</div>";
     }
 
-      card.innerHTML=
+    card.innerHTML=
       "<div class='card-header' style='position:relative'>"+
         "<div><div class='pair-name'>"+sym.replace("-","/")+"</div>"+
         "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div>"+
@@ -757,14 +743,13 @@ function fetchAndUpdate(sym) {
           "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0;margin-bottom:6px'>✏️</button>"+
         "</div>"+
       "</div>"+
-        "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
+      "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
         "<span style='background:"+(trend.score>2?"#ff69b430":trend.score<-2?"#00bcd430":"#8888bb30")+";color:"+(trend.score>2?"#ff69b4":trend.score<-2?"#00bcd4":"#8888bb")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
         "<span class='badge-reason'>スコア:"+signal.score+" | "+signal.reason+"</span>"+
         "<span class='badge-details'>"+detailStr+" | "+trend.reason+"</span>"+
       "</div>"+
-
       "<div><div style='display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px'><span>売</span><span style='color:"+scoreColor+"'>総合スコア "+signal.score+"</span><span>買</span></div><div class='score-bar-track'><div class='score-bar-fill' style='width:"+scorePct+"%;background:"+scoreColor+"'></div></div></div>"+
       "<div class='ind-grid'>"+
         "<div class='ind-row'><span class='ind-label'>RSI</span><span style='color:"+rsiColor+";font-size:12px;font-weight:600'>"+rsi+"</span></div>"+
