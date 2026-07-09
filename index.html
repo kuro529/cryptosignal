@@ -668,21 +668,28 @@ function fetchAndUpdate(sym) {
           "<span class='hist-label' style='margin-bottom:0'>シグナル履歴</span>"+
           "<button onclick='clearHistory(\""+sym+"\")' style='background:none;border:none;color:#444;cursor:pointer;font-size:11px'>クリア</button>"+
         "</div>";
-            for (var i=0;i<histories[sym].length;i++) {
+    for (var i=0;i<histories[sym].length;i++) {
         var h=histories[sym][i];
         var hSym=h.signal.type==="BUY"?"▲":h.signal.type==="SELL"?"▼":"●";
         var hc=h.signal.type==="BUY"?"#00e5a0":h.signal.type==="SELL"?"#ff4d6d":"#8888bb";
         var hTrend=h.trendScore!==undefined?h.trendScore:0;
         var htColor=hTrend>2?"#00e5a0":hTrend<-2?"#ff4d6d":"#888888";
-        histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto'>"+
+        var hbbRate=h.bbRate||0;
+        var htpPct=hbbRate>=50?0.10:hbbRate>=30?0.08:hbbRate>=10?0.06:0.04;
+        var hIsSell=h.signal.type==="SELL";
+        var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
+        var hsl=hIsSell?fmtPrice(h.price*(1+htpPct)):fmtPrice(h.price*(1-htpPct));
+        histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto;white-space:nowrap'>"+
           "<span style='color:#444;min-width:56px;font-size:10px'>"+h.time+"</span>"+
           "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+"</span>"+
           "<span style='color:"+hc+";font-size:10px'>"+h.signal.strength+"</span>"+
           "<span style='color:#555;font-size:11px'>"+fmtPrice(h.price)+"</span>"+
           "<span style='color:"+htColor+";font-size:11px;font-weight:700'>T"+hTrend+"</span>"+
+          "<span style='color:#ff69b4;font-size:10px'>TP:"+htp+"</span>"+
+          "<span style='color:#00bcd4;font-size:10px'>SL:"+hsl+"</span>"+
         "</div>";
       }
-      
+
       histHtml+="</div>";
     }
 
@@ -692,13 +699,10 @@ function fetchAndUpdate(sym) {
         "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div>"+
         "<div style='text-align:right;position:relative;padding-right:28px'>"+
           "<button class='x-btn' style='position:absolute;top:0;right:0' onclick='removePair(\""+sym+"\")'>✕</button>"+
+          "<button onclick='recordSignal(\""+sym+"\")' style='position:absolute;top:26px;right:0;background:none;border:none;font-size:14px;cursor:pointer;padding:0'>✏️</button>"+
           "<div class='price'>"+fmtPrice(price)+"</div>"+
-          "<div style='display:flex;align-items:center;gap:6px;justify-content:flex-end'>"+
-            "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
-            "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:14px;cursor:pointer'>✏️</button>"+
-          "</div>"+
+          "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
           "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
-
         "</div>"+
       "</div>"+
         "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
