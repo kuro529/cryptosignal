@@ -402,11 +402,10 @@ function calcADX(highs, lows, closes, period) {
   };
 }
 
-function calcTrendIndex(closes, highs, lows) {
+function calcTrendIndexRaw(closes, highs, lows) {
   var trendScore = 0;
   var details = [];
 
-  // ① EMA乖離率
   var ema12 = calcEMA(closes, 12);
   if (ema12 && ema12!==0) {
     var deviation = ((closes[closes.length-1]-ema12)/ema12)*100;
@@ -419,7 +418,6 @@ function calcTrendIndex(closes, highs, lows) {
     details.push("EMA乖離:"+emaScore);
   }
 
-  // ② ADX/DI
   var adxData = calcADX(highs, lows, closes, 14);
   if (adxData) {
     var adxScore = 0;
@@ -435,6 +433,31 @@ function calcTrendIndex(closes, highs, lows) {
   return { score: parseFloat(trendScore.toFixed(1)), reason: details.join(" ") };
 }
 
+var trendHistoryMap = {};
+
+function calcTrendIndex(closes, highs, lows, sym, interval) {
+  var raw = calcTrendIndexRaw(closes, highs, lows);
+  if (!sym) return raw;
+
+  var ms={"1m":60000,"5m":300000,"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
+  var barMs = ms[interval] || 3600000;
+
+  if (!trendHistoryMap[sym]) trendHistoryMap[sym] = [];
+  var arr = trendHistoryMap[sym];
+  var last = arr[arr.length-1];
+
+  // 現在の時間足が確定したタイミングか判定（barMsごとに1回だけ追加）
+  var nowBarId = Math.floor(Date.now()/barMs);
+  if (!last || last.barId !== nowBarId) {
+    arr.push({barId: nowBarId, score: raw.score});
+    if (arr.length > 3) arr.shift();
+  } else {
+    arr[arr.length-1].score = raw.score; // 同じ足の間は最新値で更新
+  }
+
+  var avgScore = arr.reduce(function(a,b){return a+b.score;},0)/arr.length;
+  return { score: parseFloat(avgScore.toFixed(1)), reason: raw.reason };
+}
 
 function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   var score=0,reasons=[],details={rsi:0,bb:0,macd:0,fr:0,vol:0,oi:0};
@@ -629,7 +652,7 @@ function fetchAndUpdate(sym) {
 
     var signal=calcScore(closes, volumes, price, fundingRate, oi, prevOi);
     var rsi=signal.rsi, bb=signal.bb, macd=signal.macd;
-    var trend=calcTrendIndex(closes, highs, lows);
+    var trend=calcTrendIndex(closes, highs, lows, sym, interval);
 
     if (!histories[sym]) histories[sym]=[];
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
