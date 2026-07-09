@@ -14,7 +14,12 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 .section-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 12px; }
 .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .row label { flex: 1; font-size: 12px; color: #888; }
-.row input { width: 90px; background: #0d0d1a; border: 1px solid #222236; color: #ccc; border-radius: 6px; padding: 6px 8px; font-size: 13px; text-align: right; }
+.row input { width: 80px; background: #0d0d1a; border: 1px solid #222236; color: #ccc; border-radius: 6px; padding: 6px 8px; font-size: 13px; text-align: right; }
+.pair-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pair-label { flex: 1; font-size: 12px; color: #888; }
+.pair-inputs { display: flex; gap: 6px; align-items: center; }
+.pair-inputs span { font-size: 10px; color: #555; }
+.pair-inputs input { width: 70px; background: #0d0d1a; border: 1px solid #222236; color: #ccc; border-radius: 6px; padding: 6px 8px; font-size: 13px; text-align: right; }
 .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #0d0d1a; border-top: 1px solid #222236; padding: 12px 16px; display: flex; gap: 10px; }
 .save-bar .btn { flex: 1; text-align: center; padding: 10px; font-size: 14px; }
 .btn-save { background: #00e5a0; color: #000; border: none; }
@@ -28,15 +33,56 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 </div>
 
 <div class="section">
-  <div class="section-title">RSI</div>
-  <div class="row"><label>RSI高値1 閾値</label><input type="number" id="rsiHigh1" step="1"></div>
-  <div class="row"><label>RSI高値1 点数</label><input type="number" id="rsiHigh1Score" step="0.5"></div>
-  <div class="row"><label>RSI高値2 閾値</label><input type="number" id="rsiHigh2" step="1"></div>
-  <div class="row"><label>RSI高値2 点数</label><input type="number" id="rsiHigh2Score" step="0.5"></div>
-  <div class="row"><label>RSI低値1 閾値</label><input type="number" id="rsiLow1" step="1"></div>
-  <div class="row"><label>RSI低値1 点数</label><input type="number" id="rsiLow1Score" step="0.5"></div>
-  <div class="row"><label>RSI低値2 閾値</label><input type="number" id="rsiLow2" step="1"></div>
-  <div class="row"><label>RSI低値2 点数</label><input type="number" id="rsiLow2Score" step="0.5"></div>
+  <div class="section-title">シグナル閾値</div>
+  <div class="row"><label>弱</label><input type="number" id="thWeak" step="0.5"></div>
+  <div class="row"><label>中</label><input type="number" id="thMid" step="0.5"></div>
+  <div class="row"><label>強</label><input type="number" id="thStrong" step="0.5"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">MACD</div>
+  <div class="row"><label>DIF>0&gt;Sig 拡大 点数</label><input type="number" id="macd1" step="0.5"></div>
+  <div class="row"><label>DIF>0&gt;Sig 縮小 点数</label><input type="number" id="macd2" step="0.5"></div>
+  <div class="row"><label>DIF>0≤Sig 点数</label><input type="number" id="macd3" step="0.5"></div>
+  <div class="row"><label>DIF≤0>Sig 点数</label><input type="number" id="macd4" step="0.5"></div>
+  <div class="row"><label>DIF≤0≤Sig 縮小 点数</label><input type="number" id="macd5" step="0.5"></div>
+  <div class="row"><label>DIF≤0≤Sig 拡大 点数</label><input type="number" id="macd6" step="0.5"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">RSI（閾値 / 点数）</div>
+  <div class="pair-row">
+    <span class="pair-label">高値1</span>
+    <div class="pair-inputs">
+      <input type="number" id="rsiHigh1" step="1">
+      <span>/</span>
+      <input type="number" id="rsiHigh1Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">高値2</span>
+    <div class="pair-inputs">
+      <input type="number" id="rsiHigh2" step="1">
+      <span>/</span>
+      <input type="number" id="rsiHigh2Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">低値1</span>
+    <div class="pair-inputs">
+      <input type="number" id="rsiLow1" step="1">
+      <span>/</span>
+      <input type="number" id="rsiLow1Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">低値2</span>
+    <div class="pair-inputs">
+      <input type="number" id="rsiLow2" step="1">
+      <span>/</span>
+      <input type="number" id="rsiLow2Score" step="0.5">
+    </div>
+  </div>
   <div class="row"><label>平均/前回比較 点数</label><input type="number" id="rsiTrendScore" step="0.5"></div>
 </div>
 
@@ -53,34 +99,47 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 </div>
 
 <div class="section">
-  <div class="section-title">MACD</div>
-  <div class="row"><label>DIF>0&gt;Sig 拡大 点数</label><input type="number" id="macd1" step="0.5"></div>
-  <div class="row"><label>DIF>0&gt;Sig 縮小 点数</label><input type="number" id="macd2" step="0.5"></div>
-  <div class="row"><label>DIF>0≤Sig 点数</label><input type="number" id="macd3" step="0.5"></div>
-  <div class="row"><label>DIF≤0>Sig 点数</label><input type="number" id="macd4" step="0.5"></div>
-  <div class="row"><label>DIF≤0≤Sig 縮小 点数</label><input type="number" id="macd5" step="0.5"></div>
-  <div class="row"><label>DIF≤0≤Sig 拡大 点数</label><input type="number" id="macd6" step="0.5"></div>
-</div>
-
-<div class="section">
-  <div class="section-title">資金調達率</div>
-  <div class="row"><label>高値1 閾値</label><input type="number" id="frHigh1" step="0.001"></div>
-  <div class="row"><label>高値1 点数</label><input type="number" id="frHigh1Score" step="0.5"></div>
-  <div class="row"><label>高値2 閾値</label><input type="number" id="frHigh2" step="0.0001"></div>
-  <div class="row"><label>高値2 点数</label><input type="number" id="frHigh2Score" step="0.5"></div>
-  <div class="row"><label>低値1 閾値</label><input type="number" id="frLow1" step="0.001"></div>
-  <div class="row"><label>低値1 点数</label><input type="number" id="frLow1Score" step="0.5"></div>
-  <div class="row"><label>低値2 閾値</label><input type="number" id="frLow2" step="0.0001"></div>
-  <div class="row"><label>低値2 点数</label><input type="number" id="frLow2Score" step="0.5"></div>
-  <div class="row"><label>低値3 閾値</label><input type="number" id="frLow3" step="0.00001"></div>
-  <div class="row"><label>低値3 点数</label><input type="number" id="frLow3Score" step="0.5"></div>
-</div>
-
-<div class="section">
-  <div class="section-title">シグナル閾値</div>
-  <div class="row"><label>弱</label><input type="number" id="thWeak" step="0.5"></div>
-  <div class="row"><label>中</label><input type="number" id="thMid" step="0.5"></div>
-  <div class="row"><label>強</label><input type="number" id="thStrong" step="0.5"></div>
+  <div class="section-title">資金調達率（閾値 / 点数）</div>
+  <div class="pair-row">
+    <span class="pair-label">高値1</span>
+    <div class="pair-inputs">
+      <input type="number" id="frHigh1" step="0.001">
+      <span>/</span>
+      <input type="number" id="frHigh1Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">高値2</span>
+    <div class="pair-inputs">
+      <input type="number" id="frHigh2" step="0.0001">
+      <span>/</span>
+      <input type="number" id="frHigh2Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">低値1</span>
+    <div class="pair-inputs">
+      <input type="number" id="frLow1" step="0.001">
+      <span>/</span>
+      <input type="number" id="frLow1Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">低値2</span>
+    <div class="pair-inputs">
+      <input type="number" id="frLow2" step="0.0001">
+      <span>/</span>
+      <input type="number" id="frLow2Score" step="0.5">
+    </div>
+  </div>
+  <div class="pair-row">
+    <span class="pair-label">低値3</span>
+    <div class="pair-inputs">
+      <input type="number" id="frLow3" step="0.00001">
+      <span>/</span>
+      <input type="number" id="frLow3Score" step="0.5">
+    </div>
+  </div>
 </div>
 
 <div style="height:70px"></div>
