@@ -578,6 +578,25 @@ function getJSON(url) {
     xhr.send();
   });
 }
+  
+function recordSignal(sym) {
+  var cur = window["_current_"+sym];
+  if (!cur) return;
+  if (!histories[sym]) histories[sym]=[];
+  var now=new Date();
+  var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
+  histories[sym].unshift({
+    time:timeStr,
+    timestamp:Date.now(),
+    signal:cur.signal,
+    price:cur.price,
+    bbRate:cur.bbRate,
+    trendScore:cur.trend.score
+  });
+  if (histories[sym].length>5) histories[sym].pop();
+  saveHistories();
+  fetchAndUpdate(sym);
+}
 
 function clearHistory(sym) {
   histories[sym] = [];
@@ -613,23 +632,13 @@ function fetchAndUpdate(sym) {
     var trend=calcTrendIndex(closes, highs, lows);
 
     if (!histories[sym]) histories[sym]=[];
-    var lastH=histories[sym][0];
-    var isDuplicate=false;
-    if (lastH) {
-      var timeDiff=Date.now()-lastH.timestamp;
-      if (timeDiff<300000 && lastH.signal.type===signal.type && lastH.signal.strength===signal.strength) {
-        isDuplicate=true;
-      }
-    }
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
-    if (signal.type!=="HOLD"&&!isDuplicate) {
-      if (signal.type!==lastSig) { fireSignalNotif(sym,signal,price); addSignalLog(sym,signal,price); }
-      var now=new Date();
-      var timeStr=(now.getMonth()+1)+"/"+(now.getDate())+" "+(now.getHours())+":"+(("0"+now.getMinutes()).slice(-2));
-      histories[sym].unshift({time:timeStr,timestamp:Date.now(),signal:signal,price:price,bbRate: bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0});
-      if (histories[sym].length>5) histories[sym].pop();
-      saveHistories();
+    if (signal.type!=="HOLD"&&signal.type!==lastSig) {
+      fireSignalNotif(sym,signal,price);
+      addSignalLog(sym,signal,price);
     }
+    // 現在のシグナル・価格・トレンドを保持（記録ボタン用）
+    window["_current_"+sym] = {signal:signal, price:price, bbRate: bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0, trend:trend};
 
     var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
@@ -659,25 +668,21 @@ function fetchAndUpdate(sym) {
           "<span class='hist-label' style='margin-bottom:0'>シグナル履歴</span>"+
           "<button onclick='clearHistory(\""+sym+"\")' style='background:none;border:none;color:#444;cursor:pointer;font-size:11px'>クリア</button>"+
         "</div>";
-      for (var i=0;i<histories[sym].length;i++) {
+            for (var i=0;i<histories[sym].length;i++) {
         var h=histories[sym][i];
-        var hc=h.signal.type==="BUY"?"#00e5a0":"#ff4d6d";
-        var sc=h.signal.strength==="強"?"#ff4d6d":h.signal.strength==="中"?"#00e5a0":"#5577ff";
-        var hbbRate=h.bbRate||bbRate;
-        var htpPct=hbbRate>=50?0.10:hbbRate>=30?0.08:hbbRate>=10?0.06:0.04;
-        var hslPct=htpPct;
-        var hIsSell=h.signal.type==="SELL";
-        var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
-        var hsl=hIsSell?fmtPrice(h.price*(1+hslPct)):fmtPrice(h.price*(1-hslPct));
-        histHtml+="<div class='hist-row'>"+
-          "<span style='color:#444;min-width:64px'>"+h.time+"</span>"+
-          "<span style='color:"+hc+";font-weight:700'>"+h.signal.type+"</span>"+
-          "<span style='color:"+sc+";font-weight:700;font-size:11px'>"+h.signal.strength+"</span>"+
-          "<span style='color:#555'>"+fmtPrice(h.price)+"</span>"+
-          "<span style='color:#ff69b4;font-size:11px'>TP:"+htp+"</span>"+
-          "<span style='color:#00bcd4;font-size:11px'>SL:"+hsl+"</span>"+
+        var hSym=h.signal.type==="BUY"?"▲":h.signal.type==="SELL"?"▼":"●";
+        var hc=h.signal.type==="BUY"?"#00e5a0":h.signal.type==="SELL"?"#ff4d6d":"#8888bb";
+        var hTrend=h.trendScore!==undefined?h.trendScore:0;
+        var htColor=hTrend>2?"#00e5a0":hTrend<-2?"#ff4d6d":"#888888";
+        histHtml+="<div class='hist-row' style='flex-wrap:nowrap;overflow-x:auto'>"+
+          "<span style='color:#444;min-width:56px;font-size:10px'>"+h.time+"</span>"+
+          "<span style='color:"+hc+";font-weight:800;font-size:13px'>"+hSym+"</span>"+
+          "<span style='color:"+hc+";font-size:10px'>"+h.signal.strength+"</span>"+
+          "<span style='color:#555;font-size:11px'>"+fmtPrice(h.price)+"</span>"+
+          "<span style='color:"+htColor+";font-size:11px;font-weight:700'>T"+hTrend+"</span>"+
         "</div>";
       }
+      
       histHtml+="</div>";
     }
 
@@ -688,8 +693,12 @@ function fetchAndUpdate(sym) {
         "<div style='text-align:right;position:relative;padding-right:28px'>"+
           "<button class='x-btn' style='position:absolute;top:0;right:0' onclick='removePair(\""+sym+"\")'>✕</button>"+
           "<div class='price'>"+fmtPrice(price)+"</div>"+
-          "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
+          "<div style='display:flex;align-items:center;gap:6px;justify-content:flex-end'>"+
+            "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
+            "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:14px;cursor:pointer'>✏️</button>"+
+          "</div>"+
           "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
+
         "</div>"+
       "</div>"+
         "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
