@@ -402,20 +402,41 @@ function calcADX(highs, lows, closes, period) {
   };
 }
 
+function calcATR(highs, lows, closes, period) {
+  period = period || 14;
+  if (closes.length < period+1) return null;
+  var trs = [];
+  for (var i=1; i<closes.length; i++) {
+    var tr = Math.max(
+      highs[i]-lows[i],
+      Math.abs(highs[i]-closes[i-1]),
+      Math.abs(lows[i]-closes[i-1])
+    );
+    trs.push(tr);
+  }
+  var recentTrs = trs.slice(-period);
+  return recentTrs.reduce(function(a,b){return a+b;},0)/period;
+}
+
 function calcTrendIndexRaw(closes, highs, lows) {
   var trendScore = 0;
   var details = [];
 
-var ema12 = calcEMA(closes, 12);
+  var ema12 = calcEMA(closes, 12);
   var ema26 = calcEMA(closes, 26);
-  if (ema12 && ema26 && ema12!==0) {
+  var atr = calcATR(highs, lows, closes, 14);
+  if (ema12 && ema26 && ema12!==0 && atr) {
     var dif = ema12 - ema26;
     var deviation = (dif/ema12)*100;
+    var atrPct = (atr/closes[closes.length-1])*100;
+    var normDeviation = atrPct>0 ? deviation/atrPct : 0;
     var emaScore = 0;
-    if (deviation>=5) emaScore=2;
-    else if (deviation>=2) emaScore=1;
-    else if (deviation<=-5) emaScore=-2;
-    else if (deviation<=-2) emaScore=-1;
+    if (normDeviation>=1.5) emaScore=3;
+    else if (normDeviation>=1.0) emaScore=2;
+    else if (normDeviation>=0.5) emaScore=1;
+    else if (normDeviation<=-1.5) emaScore=-3;
+    else if (normDeviation<=-1.0) emaScore=-2;
+    else if (normDeviation<=-0.5) emaScore=-1;
     trendScore += emaScore;
     details.push("EMA乖離:"+emaScore);
   }
@@ -424,9 +445,9 @@ var ema12 = calcEMA(closes, 12);
   if (adxData) {
     var adxScore = 0;
     if (adxData.plusDI > adxData.minusDI) {
-      adxScore = adxData.adx >= 25 ? 2 : 1;
+      adxScore = adxData.adx >= 40 ? 3 : adxData.adx >= 25 ? 2 : 1;
     } else {
-      adxScore = adxData.adx >= 25 ? -2 : -1;
+      adxScore = adxData.adx >= 40 ? -3 : adxData.adx >= 25 ? -2 : -1;
     }
     trendScore += adxScore;
     details.push("ADX:"+adxScore);
@@ -434,6 +455,7 @@ var ema12 = calcEMA(closes, 12);
 
   return { score: parseFloat(trendScore.toFixed(1)), reason: details.join(" ") };
 }
+
 
 var trendHistoryMap = {};
 
