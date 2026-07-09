@@ -406,9 +406,11 @@ function calcTrendIndexRaw(closes, highs, lows) {
   var trendScore = 0;
   var details = [];
 
-  var ema12 = calcEMA(closes, 12);
-  if (ema12 && ema12!==0) {
-    var deviation = ((closes[closes.length-1]-ema12)/ema12)*100;
+var ema12 = calcEMA(closes, 12);
+  var ema26 = calcEMA(closes, 26);
+  if (ema12 && ema26 && ema12!==0) {
+    var dif = ema12 - ema26;
+    var deviation = (dif/ema12)*100;
     var emaScore = 0;
     if (deviation>=5) emaScore=2;
     else if (deviation>=2) emaScore=1;
