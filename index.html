@@ -746,11 +746,12 @@ function fetchAndUpdate(sym) {
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
+        "<span style='background:"+(signal.score>=SETTINGS.thWeak?"#00e5a030":signal.score<=-SETTINGS.thWeak?"#ff4d6d30":"#5577ff30")+";color:"+(signal.score>=SETTINGS.thWeak?"#00e5a0":signal.score<=-SETTINGS.thWeak?"#ff4d6d":"#5577ff")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>スコア:"+signal.score+"</span>"+
         "<span style='background:"+(trend.score>2?"#ff69b430":trend.score<-2?"#00bcd430":"#8888bb30")+";color:"+(trend.score>2?"#ff69b4":trend.score<-2?"#00bcd4":"#8888bb")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
-        "<span class='badge-reason'>スコア:"+signal.score+" | "+signal.reason+"</span>"+
+        "<span class='badge-reason'>"+signal.reason+"</span>"+
         "<span class='badge-details'>"+detailStr+" | "+trend.reason+"</span>"+
       "</div>"+
-      "<div><div style='display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px'><span>売</span><span style='color:"+scoreColor+"'>総合スコア "+signal.score+"</span><span>買</span></div><div class='score-bar-track'><div class='score-bar-fill' style='width:"+scorePct+"%;background:"+scoreColor+"'></div></div></div>"+
+
       "<div class='ind-grid'>"+
         "<div class='ind-row'><span class='ind-label'>RSI</span><span style='color:"+rsiColor+";font-size:12px;font-weight:600'>"+rsi+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>BB率</span><span style='color:"+bbRateColor+";font-size:12px;font-weight:600'>"+bbRate+"%</span></div>"+
