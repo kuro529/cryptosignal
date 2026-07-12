@@ -41,6 +41,12 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .hist { border-top: 1px solid #12121f; padding-top: 8px; }
 .hist-label { color: #333; font-size: 10px; margin-bottom: 5px; }
 .hist-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 11px; gap: 6px; flex-wrap: wrap; }
+.position-box { background: #0d0d1a; border: 1px solid #5577ff44; border-radius: 10px; padding: 10px; margin-top: 4px; }
+.position-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; }
+.position-btns { display: flex; gap: 6px; margin-top: 4px; }
+.btn-long { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #00e5a044; background: #00e5a010; color: #00e5a0; font-size: 12px; cursor: pointer; }
+.btn-short { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #ff4d6d44; background: #ff4d6d10; color: #ff4d6d; font-size: 12px; cursor: pointer; }
+.btn-close { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 6px; }
 .loading { color: #2a2a44; text-align: center; padding: 24px; font-size: 13px; }
 .error { color: #ff4d6d; font-size: 12px; }
 .footer { text-align: center; color: #222236; font-size: 10px; padding: 16px; }
@@ -622,6 +628,35 @@ function getJSON(url) {
   });
 }
 
+var positions = {};
+try {
+  var savedPositions = localStorage.getItem("positions");
+  if (savedPositions) positions = JSON.parse(savedPositions);
+} catch(e) {}
+
+function savePositions() { try { localStorage.setItem("positions", JSON.stringify(positions)); } catch(e) {} }
+
+function openPosition(sym, dir, currentPrice) {
+  var priceInput = prompt(dir + "エントリー価格（現在:" + fmtPrice(currentPrice) + "）", currentPrice);
+  if (priceInput === null) return;
+  var price = parseFloat(priceInput);
+  if (isNaN(price) || price <= 0) { alert("正しい価格を入力してください"); return; }
+  var qtyInput = prompt("数量を入力");
+  if (qtyInput === null) return;
+  var qty = parseFloat(qtyInput);
+  if (isNaN(qty) || qty <= 0) { alert("正しい数量を入力してください"); return; }
+  positions[sym] = { dir: dir, entryPrice: price, qty: qty, time: new Date().toLocaleString("ja-JP") };
+  savePositions();
+  fetchAndUpdate(sym);
+}
+
+function closePosition(sym) {
+  if (!confirm("ポジションをクローズしますか？")) return;
+  delete positions[sym];
+  savePositions();
+  fetchAndUpdate(sym);
+}
+
 function recordSignal(sym) {
   var cur = window["_current_"+sym];
   if (!cur) return;
@@ -741,9 +776,29 @@ function fetchAndUpdate(sym) {
             "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
             "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
           "</div>"+
-          "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0;margin-bottom:6px'>✏️</button>"+
+            "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0;margin-bottom:6px'>✏️</button>"+
         "</div>"+
       "</div>"+
+      (function(){
+        var pos = positions[sym];
+        if (pos) {
+          var pnl = pos.dir==="ロング" ? (price-pos.entryPrice)*pos.qty : (pos.entryPrice-price)*pos.qty;
+          var pnlColor = pnl>=0 ? "#00e5a0" : "#ff4d6d";
+          return "<div class='position-box'>"+
+            "<div class='position-row'><span style='color:#5577ff;font-weight:700'>"+pos.dir+"</span><span style='color:#888'>"+pos.time+"</span></div>"+
+            "<div class='position-row'><span style='color:#888'>エントリー</span><span>"+fmtPrice(pos.entryPrice)+"</span></div>"+
+            "<div class='position-row'><span style='color:#888'>数量</span><span>"+pos.qty+"</span></div>"+
+            "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>"+
+            "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>"+
+          "</div>";
+        } else {
+          return "<div class='position-btns'>"+
+            "<button class='btn-long' onclick='openPosition(\""+sym+"\",\"ロング\","+price+")'>ロング</button>"+
+            "<button class='btn-short' onclick='openPosition(\""+sym+"\",\"ショート\","+price+")'>ショート</button>"+
+          "</div>";
+        }
+      })()+
+
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
