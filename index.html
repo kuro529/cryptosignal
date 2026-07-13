@@ -41,12 +41,6 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .hist { border-top: 1px solid #12121f; padding-top: 8px; }
 .hist-label { color: #333; font-size: 10px; margin-bottom: 5px; }
 .hist-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 11px; gap: 6px; flex-wrap: wrap; }
-.position-box { background: #0d0d1a; border: 1px solid #5577ff44; border-radius: 10px; padding: 10px; margin-top: 4px; }
-.position-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; }
-.position-btns { display: flex; gap: 6px; margin-top: 4px; }
-.btn-long { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #00e5a044; background: #00e5a010; color: #00e5a0; font-size: 12px; cursor: pointer; }
-.btn-short { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #ff4d6d44; background: #ff4d6d10; color: #ff4d6d; font-size: 12px; cursor: pointer; }
-.btn-close { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 6px; }
 .loading { color: #2a2a44; text-align: center; padding: 24px; font-size: 13px; }
 .error { color: #ff4d6d; font-size: 12px; }
 .footer { text-align: center; color: #222236; font-size: 10px; padding: 16px; }
@@ -61,6 +55,12 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .toast-detail { font-size: 12px; margin-top: 2px; opacity: 0.85; }
 @keyframes slideIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+.position-divider { border-top: 1px dashed #ffffff33; width: 100%; margin: 8px 0 4px; }
+.position-row { display: flex; justify-content: space-between; width: 100%; font-size: 12px; margin-bottom: 4px; }
+.position-btns { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
+.btn-long { flex: 1; padding: 4px 6px; border-radius: 6px; border: 1px solid #00e5a044; background: #00e5a010; color: #00e5a0; font-size: 12px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
+.btn-short { flex: 1; padding: 4px 6px; border-radius: 6px; border: 1px solid #ff4d6d44; background: #ff4d6d10; color: #ff4d6d; font-size: 12px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
+.btn-close { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -82,10 +82,10 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
     <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
-    <button class="btn" id="scanBtn" onclick="startScan()">🔍 ｽｷｬﾝ</button>
+    <button class="btn" id="scanBtn" onclick="startScan()">🔍 スキャン</button>
     <button class="btn" onclick="refreshAll()">🔄 更新</button>
     <a href="settings.html" class="btn" style="text-decoration:none;display:inline-block">⚙️ 設定</a>
-    <button class="btn" onclick="clearCacheOnly()">🧹 ﾘﾛｰﾄﾞ</button>
+    <button class="btn" onclick="clearCacheOnly()">🧹 リロード</button>
   </div>
 </div>
 <div class="add-bar hidden" id="addBar">
@@ -143,6 +143,34 @@ try {
   var savedHistories = localStorage.getItem("histories");
   if (savedHistories) histories = JSON.parse(savedHistories);
 } catch(e) {}
+
+var positions = {};
+try {
+  var savedPositions = localStorage.getItem("positions");
+  if (savedPositions) positions = JSON.parse(savedPositions);
+} catch(e) {}
+function savePositions() { try { localStorage.setItem("positions", JSON.stringify(positions)); } catch(e) {} }
+
+function openPosition(sym, dir, currentPrice) {
+  var priceInput = prompt(dir + "エントリー価格（現在:" + fmtPrice(currentPrice) + "）", currentPrice);
+  if (priceInput === null) return;
+  var price = parseFloat(priceInput);
+  if (isNaN(price) || price <= 0) { alert("正しい価格を入力してください"); return; }
+  var qtyInput = prompt("数量を入力");
+  if (qtyInput === null) return;
+  var qty = parseFloat(qtyInput);
+  if (isNaN(qty) || qty <= 0) { alert("正しい数量を入力してください"); return; }
+  positions[sym] = { dir: dir, entryPrice: price, qty: qty, time: new Date().toLocaleString("ja-JP") };
+  savePositions();
+  fetchAndUpdate(sym);
+}
+
+function closePosition(sym) {
+  if (!confirm("ポジションをクローズしますか？")) return;
+  delete positions[sym];
+  savePositions();
+  fetchAndUpdate(sym);
+}
 
 var SETTINGS_DEFAULT = {
   rsiHigh1:85, rsiHigh1Score:-2,
@@ -302,6 +330,20 @@ function addPairFromInput() {
 }
 
 function refreshAll() { for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]); }
+
+function clearCacheOnly() {
+  if (!confirm("キャッシュのみクリアして再読み込みします。銘柄や履歴は残ります。")) return;
+  if ('caches' in window) {
+    caches.keys().then(function(names) { names.forEach(function(name) { caches.delete(name); }); });
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      registrations.forEach(function(reg) { reg.unregister(); });
+    });
+  }
+  var url = window.location.href.split('?')[0] + '?t=' + Date.now();
+  window.location.href = url;
+}
 
 function fmtPrice(p) {
   if (p==null) return "-";
@@ -498,7 +540,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   var macd = calcMACD(closes);
   var macdPrev = calcMACDPrev(closes);
 
-  // MACD
   if (macd!==null) {
     var macdScore=0;
     var histExpanding = macdPrev!==null ? Math.abs(macd.hist)>Math.abs(macdPrev.hist) : true;
@@ -516,7 +557,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
     reasons.push("MACD:"+macdScore);
   }
 
-  // RSI
   if (rsi!==null) {
     var rsiScore=0;
     if (rsiAvg14!==null && rsiPrev!==null) {
@@ -532,7 +572,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
     if (rsiScore!==0) reasons.push("RSI:"+rsiScore);
   }
 
-  // BB
   if (bb!==null&&price!==null) {
     var bbScore=0;
     if (price<=bb.lower){bbScore+=SETTINGS.bbLowerScore;reasons.push("BB下限");}
@@ -551,7 +590,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
     score+=bbScore;
   }
 
-  // 出来高
   var volScore=0;
   if (volumes && volumes.length>=21) {
     var completedVolumes = volumes.slice(0,-1);
@@ -568,7 +606,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
   details.vol=volScore;
   score+=volScore;
 
-  // 資金調達率
   if (fundingRate!==null) {
     var frScore=0;
     if (fundingRate>=SETTINGS.frHigh1){frScore=SETTINGS.frHigh1Score;reasons.push("FR高+");}
@@ -581,7 +618,6 @@ function calcScore(closes, volumes, price, fundingRate, oi, prevOi) {
     score+=frScore;
   }
 
-  // OI
   if (oi!==null&&prevOi!==null&&prevOi>0) {
     var oiChange=(oi-prevOi)/prevOi;
     var priceUpOi = closes.length>=2 && closes[closes.length-1]>closes[closes.length-2];
@@ -628,35 +664,6 @@ function getJSON(url) {
   });
 }
 
-var positions = {};
-try {
-  var savedPositions = localStorage.getItem("positions");
-  if (savedPositions) positions = JSON.parse(savedPositions);
-} catch(e) {}
-
-function savePositions() { try { localStorage.setItem("positions", JSON.stringify(positions)); } catch(e) {} }
-
-function openPosition(sym, dir, currentPrice) {
-  var priceInput = prompt(dir + "エントリー価格（現在:" + fmtPrice(currentPrice) + "）", currentPrice);
-  if (priceInput === null) return;
-  var price = parseFloat(priceInput);
-  if (isNaN(price) || price <= 0) { alert("正しい価格を入力してください"); return; }
-  var qtyInput = prompt("数量を入力");
-  if (qtyInput === null) return;
-  var qty = parseFloat(qtyInput);
-  if (isNaN(qty) || qty <= 0) { alert("正しい数量を入力してください"); return; }
-  positions[sym] = { dir: dir, entryPrice: price, qty: qty, time: new Date().toLocaleString("ja-JP") };
-  savePositions();
-  fetchAndUpdate(sym);
-}
-
-function closePosition(sym) {
-  if (!confirm("ポジションをクローズしますか？")) return;
-  delete positions[sym];
-  savePositions();
-  fetchAndUpdate(sym);
-}
-
 function recordSignal(sym) {
   var cur = window["_current_"+sym];
   if (!cur) return;
@@ -676,6 +683,20 @@ function clearHistory(sym) {
   histories[sym] = [];
   saveHistories();
   fetchAndUpdate(sym);
+}
+
+var updateQueue = [];
+var updateQueueRunning = false;
+
+function processUpdateQueue() {
+  if (updateQueueRunning || updateQueue.length === 0) return;
+  updateQueueRunning = true;
+  var sym = updateQueue.shift();
+  fetchAndUpdate(sym);
+  setTimeout(function() {
+    updateQueueRunning = false;
+    processUpdateQueue();
+  }, 800);
 }
 
 function fetchAndUpdate(sym) {
@@ -716,8 +737,6 @@ function fetchAndUpdate(sym) {
     var sigColor=signal.type==="BUY"?"#00e5a0":signal.type==="SELL"?"#ff4d6d":"#8888bb";
     var chgColor=change>=0?"#00e5a0":"#ff4d6d";
     var rsiColor=rsi<30?"#00e5a0":rsi>70?"#ff4d6d":"#5577ff";
-    var scorePct=Math.min(100,Math.max(0,(signal.score+15)/30*100));
-    var scoreColor=signal.score>=SETTINGS.thWeak?"#00e5a0":signal.score<=-SETTINGS.thWeak?"#ff4d6d":"#5577ff";
     var frPct=fundingRate!==null?(fundingRate*100).toFixed(4)+"%":"--";
     var oiStr=oi!==null?(oi/1000000).toFixed(1)+"M":"--";
     var macdStr=macd?parseFloat(macd.macd.toFixed(4))+"/"+parseFloat(macd.signal.toFixed(4)):"--";
@@ -765,10 +784,34 @@ function fetchAndUpdate(sym) {
       histHtml+="</div>";
     }
 
+    var pos = positions[sym];
+    var positionBtnsHtml = pos ? "" : (
+      "<div class='position-btns'>"+
+        "<button class='btn-long' onclick='openPosition(\""+sym+"\",\"ロング\","+price+")'>ロング</button>"+
+        "<button class='btn-short' onclick='openPosition(\""+sym+"\",\"ショート\","+price+")'>ショート</button>"+
+      "</div>"
+    );
+
+    var positionInfoHtml = "";
+    if (pos) {
+      var pnl = pos.dir==="ロング" ? (price-pos.entryPrice)*pos.qty : (pos.entryPrice-price)*pos.qty;
+      var pnlColor = pnl>=0 ? "#00e5a0" : "#ff4d6d";
+      positionInfoHtml =
+        "<div class='position-divider'></div>"+
+        "<div class='position-row'><span style='color:#5577ff;font-weight:700'>"+pos.dir+"</span><span style='color:#888'>"+pos.time+"</span></div>"+
+        "<div class='position-row'><span style='color:#888'>エントリー</span><span>"+fmtPrice(pos.entryPrice)+"</span></div>"+
+        "<div class='position-row'><span style='color:#888'>数量</span><span>"+pos.qty+"</span></div>"+
+        "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>"+
+        "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>";
+    }
+
     card.innerHTML=
       "<div class='card-header' style='position:relative'>"+
-        "<div><div class='pair-name'>"+sym.replace("-","/")+"</div>"+
-        "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div></div>"+
+        "<div>"+
+          "<div class='pair-name'>"+sym.replace("-","/")+"</div>"+
+          "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div>"+
+          positionBtnsHtml+
+        "</div>"+
         "<button class='x-btn' style='position:absolute;top:-4px;right:-4px' onclick='removePair(\""+sym+"\")'>✕</button>"+
         "<div style='text-align:right;display:flex;align-items:flex-end;gap:6px'>"+
           "<div>"+
@@ -776,29 +819,9 @@ function fetchAndUpdate(sym) {
             "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
             "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
           "</div>"+
-            "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0;margin-bottom:6px'>✏️</button>"+
+          "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0;margin-bottom:6px'>✏️</button>"+
         "</div>"+
       "</div>"+
-      (function(){
-        var pos = positions[sym];
-        if (pos) {
-          var pnl = pos.dir==="ロング" ? (price-pos.entryPrice)*pos.qty : (pos.entryPrice-price)*pos.qty;
-          var pnlColor = pnl>=0 ? "#00e5a0" : "#ff4d6d";
-          return "<div class='position-box'>"+
-            "<div class='position-row'><span style='color:#5577ff;font-weight:700'>"+pos.dir+"</span><span style='color:#888'>"+pos.time+"</span></div>"+
-            "<div class='position-row'><span style='color:#888'>エントリー</span><span>"+fmtPrice(pos.entryPrice)+"</span></div>"+
-            "<div class='position-row'><span style='color:#888'>数量</span><span>"+pos.qty+"</span></div>"+
-            "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>"+
-            "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>"+
-          "</div>";
-        } else {
-          return "<div class='position-btns'>"+
-            "<button class='btn-long' onclick='openPosition(\""+sym+"\",\"ロング\","+price+")'>ロング</button>"+
-            "<button class='btn-short' onclick='openPosition(\""+sym+"\",\"ショート\","+price+")'>ショート</button>"+
-          "</div>";
-        }
-      })()+
-
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
         "<span class='badge-type'>"+signal.type+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
@@ -806,8 +829,8 @@ function fetchAndUpdate(sym) {
         "<span style='background:"+(trend.score>2?"#ff69b430":trend.score<-2?"#00bcd430":"#8888bb30")+";color:"+(trend.score>2?"#ff69b4":trend.score<-2?"#00bcd4":"#8888bb")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
         "<span class='badge-reason'>"+signal.reason+"</span>"+
         "<span class='badge-details'>"+detailStr+" | "+trend.reason+"</span>"+
+        positionInfoHtml+
       "</div>"+
-
       "<div class='ind-grid'>"+
         "<div class='ind-row'><span class='ind-label'>RSI</span><span style='color:"+rsiColor+";font-size:12px;font-weight:600'>"+rsi+"</span></div>"+
         "<div class='ind-row'><span class='ind-label'>BB率</span><span style='color:"+bbRateColor+";font-size:12px;font-weight:600'>"+bbRate+"%</span></div>"+
@@ -830,20 +853,6 @@ function removePair(sym) {
   delete trendHistoryMap[sym];
   var card=document.getElementById("card-"+sym); if(card) card.parentNode.removeChild(card);
   renderPopular();
-}
-
-var updateQueue = [];
-var updateQueueRunning = false;
-
-function processUpdateQueue() {
-  if (updateQueueRunning || updateQueue.length === 0) return;
-  updateQueueRunning = true;
-  var sym = updateQueue.shift();
-  fetchAndUpdate(sym);
-  setTimeout(function() {
-    updateQueueRunning = false;
-    processUpdateQueue();
-  }, 800);
 }
 
 function loadCard(sym) {
@@ -922,28 +931,11 @@ function scanNext() {
   }).catch(function(){}).then(function(){ setTimeout(scanNext,500); });
 }
 
-function clearCacheOnly() {
-  if (!confirm("キャッシュのみクリアして再読み込みします。銘柄や履歴は残ります。")) return;
-  if ('caches' in window) {
-    caches.keys().then(function(names) {
-      names.forEach(function(name) { caches.delete(name); });
-    });
-  }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      registrations.forEach(function(reg) { reg.unregister(); });
-    });
-  }
-  var url = window.location.href.split('?')[0] + '?t=' + Date.now();
-  window.location.href = url;
-}
-
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
   (function(sym,delay){ setTimeout(function(){ loadCard(sym); }, delay); })(pairs[i], i*3500);
 }
-
 </script>
 </body>
 </html>
