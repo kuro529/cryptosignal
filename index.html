@@ -814,9 +814,10 @@ function fetchAndUpdate(sym) {
           positionBtnsHtml+
         "</div>"+
         "<button class='x-btn' style='position:absolute;top:-4px;right:-4px' onclick='removePair(\""+sym+"\")'>✕</button>"+
-        "<div style='text-align:right;display:flex;flex-direction:column;justify-content:flex-end;height:100%'>"+
+          "<div style='text-align:right'>"+
+          "<div style='height:32px'></div>"+
           "<div style='display:flex;align-items:center;gap:6px;justify-content:flex-end'>"+
-            "<div style='text-align:right'>"+
+            "<div>"+
               "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
               "<div style='color:#00bcd4;font-size:12px'>SL: "+sl+" ("+slLabel+")</div>"+
             "</div>"+
