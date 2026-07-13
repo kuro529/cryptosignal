@@ -785,7 +785,9 @@ function fetchAndUpdate(sym) {
     }
 
     var pos = positions[sym];
-    var positionBtnsHtml = pos ? "" : (
+    var positionBtnsHtml = pos ? (
+      "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>"
+    ) : (
       "<div class='position-btns'>"+
         "<button class='btn-long' onclick='openPosition(\""+sym+"\",\"ロング\","+price+")'>ロング</button>"+
         "<button class='btn-short' onclick='openPosition(\""+sym+"\",\"ショート\","+price+")'>ショート</button>"+
@@ -798,11 +800,10 @@ function fetchAndUpdate(sym) {
       var pnlColor = pnl>=0 ? "#00e5a0" : "#ff4d6d";
       positionInfoHtml =
         "<div class='position-divider'></div>"+
-        "<div class='position-row'><span style='color:#5577ff;font-weight:700'>"+pos.dir+"</span><span style='color:#888'>"+pos.time+"</span></div>"+
+        "<div class='position-row'><span style='color:"+(pos.dir==="ロング"?"#00e5a0":"#ff4d6d")+";font-weight:700'>"+pos.dir+"</span><span style='color:#888'>"+pos.time+"</span></div>"+
         "<div class='position-row'><span style='color:#888'>エントリー</span><span>"+fmtPrice(pos.entryPrice)+"</span></div>"+
         "<div class='position-row'><span style='color:#888'>数量</span><span>"+pos.qty+"</span></div>"+
-        "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>"+
-        "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>";
+        "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>";
     }
 
     card.innerHTML=
