@@ -60,7 +60,9 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .position-btns { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
 .btn-long { flex: 1; padding: 4px 6px; border-radius: 6px; border: 1px solid #00e5a044; background: #00e5a010; color: #00e5a0; font-size: 12px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
 .btn-short { flex: 1; padding: 4px 6px; border-radius: 6px; border: 1px solid #ff4d6d44; background: #ff4d6d10; color: #ff4d6d; font-size: 12px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
-.btn-close { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 4px; }
+.btn-close { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 4px; }
+.btn-edit-pos { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #5577ff44; background: #5577ff10; color: #5577ff; font-size: 12px; cursor: pointer; margin-top: 4px; }
+.position-action-row { display: flex; gap: 6px; }
 </style>
 </head>
 <body>
@@ -161,6 +163,23 @@ function openPosition(sym, dir, currentPrice) {
   var qty = parseFloat(qtyInput);
   if (isNaN(qty) || qty <= 0) { alert("正しい数量を入力してください"); return; }
   positions[sym] = { dir: dir, entryPrice: price, qty: qty, time: new Date().toLocaleString("ja-JP") };
+  savePositions();
+  fetchAndUpdate(sym);
+}
+  
+function editPosition(sym) {
+  var pos = positions[sym];
+  if (!pos) return;
+  var priceInput = prompt("エントリー価格を変更", pos.entryPrice);
+  if (priceInput === null) return;
+  var price = parseFloat(priceInput);
+  if (isNaN(price) || price <= 0) { alert("正しい価格を入力してください"); return; }
+  var qtyInput = prompt("数量を変更", pos.qty);
+  if (qtyInput === null) return;
+  var qty = parseFloat(qtyInput);
+  if (isNaN(qty) || qty <= 0) { alert("正しい数量を入力してください"); return; }
+  pos.entryPrice = price;
+  pos.qty = qty;
   savePositions();
   fetchAndUpdate(sym);
 }
@@ -786,7 +805,10 @@ function fetchAndUpdate(sym) {
 
     var pos = positions[sym];
     var positionBtnsHtml = pos ? (
-      "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>"
+      "<div class='position-action-row'>"+
+        "<button class='btn-close' onclick='closePosition(\""+sym+"\")'>クローズ</button>"+
+        "<button class='btn-edit-pos' onclick='editPosition(\""+sym+"\")'>編集</button>"+
+      "</div>"
     ) : (
       "<div class='position-btns'>"+
         "<button class='btn-long' onclick='openPosition(\""+sym+"\",\"ロング\","+price+")'>ロング</button>"+
@@ -804,6 +826,7 @@ function fetchAndUpdate(sym) {
         "<div class='position-row'><span style='color:#888'>エントリー</span><span>"+fmtPrice(pos.entryPrice)+"</span></div>"+
         "<div class='position-row'><span style='color:#888'>数量</span><span>"+pos.qty+"</span></div>"+
         "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>";
+    }
     }
 
     card.innerHTML=
