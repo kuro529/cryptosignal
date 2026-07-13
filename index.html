@@ -807,15 +807,17 @@ function fetchAndUpdate(sym) {
     }
 
     card.innerHTML=
-      "<div class='card-header' style='position:relative'>"+
+      "<div class='card-header'>"+
         "<div>"+
           "<div class='pair-name'>"+sym.replace("-","/")+"</div>"+
           "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div>"+
           positionBtnsHtml+
         "</div>"+
-        "<button class='x-btn' style='position:absolute;top:-4px;right:-4px' onclick='removePair(\""+sym+"\")'>✕</button>"+
-          "<div style='text-align:right;padding-top:20px'>"+
-          "<div class='price'>"+fmtPrice(price)+"</div>"+
+        "<div style='text-align:right'>"+
+          "<div style='display:flex;align-items:center;gap:6px;justify-content:flex-end'>"+
+            "<div class='price'>"+fmtPrice(price)+"</div>"+
+            "<button class='x-btn' onclick='removePair(\""+sym+"\")'>✕</button>"+
+          "</div>"+
           "<div style='display:flex;align-items:center;gap:6px;justify-content:flex-end'>"+
             "<div>"+
               "<div style='color:#ff69b4;font-size:12px'>TP: "+tp+" ("+tpLabel+")</div>"+
@@ -823,8 +825,6 @@ function fetchAndUpdate(sym) {
             "</div>"+
             "<button onclick='recordSignal(\""+sym+"\")' style='background:none;border:none;font-size:16px;cursor:pointer;padding:0'>✏️</button>"+
           "</div>"+
-        "</div>"+
-
         "</div>"+
       "</div>"+
       "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
