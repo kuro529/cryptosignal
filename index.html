@@ -952,8 +952,7 @@ function scanNext() {
     var highs=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[2]:d.high);});
     var lows=kJson.data.map(function(d){return parseFloat(Array.isArray(d)?d[3]:d.low);});
     var trend=calcTrendIndex(closes, highs, lows, sym, interval);
-    var frAbs=fundingRate!==null?Math.abs(fundingRate):0;
-    if (signal.type!=="HOLD"||frAbs>=0.005||trend.score>=3||trend.score<=-3) scanResults.push(sym);
+    if (signal.type!=="HOLD") scanResults.push(sym);
   }).catch(function(){}).then(function(){ setTimeout(scanNext,500); });
 }
 
