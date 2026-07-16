@@ -913,7 +913,7 @@ function startScan() {
 function scanNext() {
   var btn=document.getElementById("scanBtn");
   if (scanIndex>=scanTotal) {
-    btn.textContent="🔍 スキャン"; btn.disabled=false;
+    btn.textContent="🔍 ｽｷｬﾝ"; btn.disabled=false;
     if (scanResults.length===0) { showToast("スキャン完了","シグナルなし","buy",3000); }
     else {
       showToast("スキャン完了",scanResults.length+"件発見！","buy",3000);
