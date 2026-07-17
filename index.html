@@ -346,7 +346,7 @@ function addPairFromInput() {
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
 
-function refreshAll() { for(var i=0;i<pairs.length;i++) fetchAndUpdate(pairs[i]); }
+function refreshAll() { for(var i=0;i<pairs.length;i++) updateQueue.push(pairs[i]); processUpdateQueue(); }
 
 function clearCacheOnly() {
   if (!confirm("キャッシュのみクリアして再読み込みします。銘柄や履歴は残ります。")) return;
