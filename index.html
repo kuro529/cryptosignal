@@ -829,7 +829,7 @@ function fetchAndUpdate(sym) {
     card.innerHTML=
       "<div class='card-header'>"+
         "<div>"+
-          "<div class='pair-name'>"+sym.replace("-","/")+"</div>"+
+          "<div class='pair-name'>"+sym.replace("-","/")+" <button onclick='fetchAndUpdate(\""+sym+"\")' style='background:none;border:none;color:#5577ff;font-size:13px;cursor:pointer;padding:0;vertical-align:middle'>🔄</button></div>"+
           "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div>"+
           positionBtnsHtml+
         "</div>"+
