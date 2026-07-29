@@ -315,7 +315,7 @@ function placeAutoOrder(sym, signal, price) {
   var tpParam = JSON.stringify({type:"TAKE_PROFIT_MARKET", stopPrice: parseFloat(tpPrice.toFixed(6)), price: parseFloat(tpPrice.toFixed(6)), workingType:"MARK_PRICE"});
   var slParam = JSON.stringify({type:"STOP_MARKET", stopPrice: parseFloat(slPrice.toFixed(6)), price: parseFloat(slPrice.toFixed(6)), workingType:"MARK_PRICE"});
 
-  return getJSON(PROXY+"/leverage?symbol="+sym+"&side="+positionSide+"&leverage="+leverage).then(function(){
+  return postJSON(PROXY+"/leverage?symbol="+sym+"&side="+positionSide+"&leverage="+leverage).then(function(){
     var url = PROXY+"/order?symbol="+sym+"&side="+side+"&positionSide="+positionSide+"&quantity="+qty+"&takeProfit="+encodeURIComponent(tpParam)+"&stopLoss="+encodeURIComponent(slParam);
     return postJSON(url);
   }).then(function(res){
