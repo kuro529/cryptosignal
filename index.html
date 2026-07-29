@@ -79,7 +79,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
       <option value="4h" selected>4h</option>
       <option value="1d">1d</option>
     </select>
-    <button class="btn-notif" id="notifBtn" onclick="toggleNotif()">🔔 通知 OFF</button>
+    <button class="btn-notif" id="autoTradeBtn" onclick="toggleAutoTrade()">🤖 自動売買 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
     <button class="btn" id="scanBtn" onclick="startScan()">🔍 ｽｷｬﾝ</button>
@@ -127,9 +127,9 @@ var timers = {};
 var histories = {};
 var prevOiMap = {};
 var prevPriceMap = {};
-var notifEnabled = false;
-var notifPermission = false;
 var signalLog = [];
+var autoTradeEnabled = false;
+try { autoTradeEnabled = localStorage.getItem("autoTradeEnabled") === "true"; } catch(e) {}
 
 try {
   var saved = localStorage.getItem("pairs3");
@@ -250,18 +250,50 @@ function renderLog() {
 
 function clearLog() { signalLog = []; saveSignalLog(); renderLog(); }
 
-function toggleNotif() {
-  if (!notifEnabled) {
-    notifEnabled = true;
-    document.getElementById("notifBtn").textContent = "🔔 通知 ON";
-    document.getElementById("notifBtn").classList.add("on");
-    showToast("通知ON", "BUY/SELLシグナルをお知らせします", "buy", 2000);
-    if ("Notification" in window) Notification.requestPermission().then(function(p){ notifPermission = p==="granted"; });
-  } else {
-    notifEnabled = false;
-    document.getElementById("notifBtn").textContent = "🔔 通知 OFF";
-    document.getElementById("notifBtn").classList.remove("on");
-  }
+function toggleAutoTrade() {
+  if (!autoTradeEnabled && !confirm("自動売買をONにします。新規シグナル発生時に自動でデモ発注(証拠金50USDT/レバレッジ15倍)されます。よろしいですか？")) return;
+  autoTradeEnabled = !autoTradeEnabled;
+  var btn = document.getElementById("autoTradeBtn");
+  btn.textContent = autoTradeEnabled ? "🤖 自動売買 ON" : "🤖 自動売買 OFF";
+  btn.classList.toggle("on", autoTradeEnabled);
+  try { localStorage.setItem("autoTradeEnabled", autoTradeEnabled); } catch(e) {}
+}
+
+function postJSON(url) {
+  return new Promise(function(resolve,reject) {
+    var xhr=new XMLHttpRequest();
+    xhr.open("POST",url);
+    xhr.onload=function(){ if(xhr.status===200){ try{resolve(JSON.parse(xhr.responseText));}catch(e){reject(e);} }else{reject(new Error("HTTP "+xhr.status));} };
+    xhr.onerror=function(){ reject(new Error("Network error")); };
+    xhr.timeout=30000;
+    xhr.ontimeout=function(){ reject(new Error("Timeout")); };
+    xhr.send();
+  });
+}
+
+function placeAutoOrder(sym, signal, price) {
+  var bb = signal.bb;
+  var bbRate = bb ? ((bb.upper-bb.lower)/bb.upper*100) : 0;
+  var tpPct = bbRate>=50?0.10:bbRate>=30?0.08:bbRate>=10?0.06:0.04;
+  var slPct = tpPct;
+  var isSell = signal.type === "SELL";
+  var tpPrice = isSell ? price*(1-tpPct) : price*(1+tpPct);
+  var slPrice = isSell ? price*(1+slPct) : price*(1-slPct);
+  var side = isSell ? "SELL" : "BUY";
+  var positionSide = isSell ? "SHORT" : "LONG";
+  var margin = 50, leverage = 15;
+  var qty = parseFloat(((margin*leverage)/price).toFixed(4));
+  var tpParam = JSON.stringify({type:"TAKE_PROFIT_MARKET", stopPrice: parseFloat(tpPrice.toFixed(6)), price: parseFloat(tpPrice.toFixed(6)), workingType:"MARK_PRICE"});
+  var slParam = JSON.stringify({type:"STOP_MARKET", stopPrice: parseFloat(slPrice.toFixed(6)), price: parseFloat(slPrice.toFixed(6)), workingType:"MARK_PRICE"});
+
+  getJSON(PROXY+"/leverage?symbol="+sym+"&side="+positionSide+"&leverage="+leverage).then(function(){
+    var url = PROXY+"/order?symbol="+sym+"&side="+side+"&positionSide="+positionSide+"&quantity="+qty+"&takeProfit="+encodeURIComponent(tpParam)+"&stopLoss="+encodeURIComponent(slParam);
+    return postJSON(url);
+  }).then(function(res){
+    showToast(sym.replace("-","/"), "自動発注実行: "+signal.type+" 数量:"+qty, signal.type==="BUY"?"buy":"sell", 5000);
+  }).catch(function(e){
+    showToast(sym.replace("-","/"), "自動発注失敗: "+e.message, "sell", 5000);
+  });
 }
 
 function showToast(pair, message, type, duration) {
@@ -272,22 +304,6 @@ function showToast(pair, message, type, duration) {
   toast.innerHTML = "<div class='toast-pair'>⚡ " + pair + "</div><div class='toast-detail'>" + message + "</div>";
   wrap.appendChild(toast);
   setTimeout(function(){ toast.style.animation="slideOut 0.3s ease forwards"; setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); },300); }, duration);
-}
-
-function fireSignalNotif(sym, signal, price) {
-  if (!notifEnabled) return;
-  var msg = signal.type + " " + signal.reason + " @ " + fmtPrice(price);
-  showToast(sym.replace("-","/"), msg, signal.type==="BUY"?"buy":"sell");
-  if (notifPermission) { try { new Notification("⚡ "+sym.replace("-","/")+signal.type,{body:msg}); } catch(e){} }
-  try {
-    var ctx = new (window.AudioContext||window.webkitAudioContext)();
-    var osc = ctx.createOscillator(); var gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = signal.type==="BUY"?880:440;
-    gain.gain.setValueAtTime(0.3,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
-    osc.start(); osc.stop(ctx.currentTime+0.5);
-  } catch(e){}
 }
 
 function renderPopular() {
@@ -746,8 +762,8 @@ function fetchAndUpdate(sym) {
     if (!histories[sym]) histories[sym]=[];
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
     if (signal.type!=="HOLD"&&signal.type!==lastSig) {
-      fireSignalNotif(sym,signal,price);
       addSignalLog(sym,signal,price);
+      if (autoTradeEnabled) placeAutoOrder(sym, signal, price);
     }
     window["_current_"+sym] = {signal:signal, price:price, bbRate: bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0, trend:trend};
 
@@ -956,6 +972,10 @@ function scanNext() {
   }).catch(function(){}).then(function(){ setTimeout(scanNext,500); });
 }
 
+if (autoTradeEnabled) {
+  document.getElementById("autoTradeBtn").textContent = "🤖 自動売買 ON";
+  document.getElementById("autoTradeBtn").classList.add("on");
+}
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
