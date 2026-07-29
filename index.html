@@ -79,7 +79,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
       <option value="4h" selected>4h</option>
       <option value="1d">1d</option>
     </select>
-    <button class="btn-notif" id="autoTradeBtn" onclick="toggleAutoTrade()">🤖 自動売買 OFF</button>
+    <button class="btn-notif" id="autoTradeBtn" onclick="toggleAutoTrade()">🤖 自動 OFF</button>
     <button class="btn" onclick="toggleLog()">📋 履歴</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
     <button class="btn" id="scanBtn" onclick="startScan()">🔍 ｽｷｬﾝ</button>
@@ -254,7 +254,7 @@ function toggleAutoTrade() {
   if (!autoTradeEnabled && !confirm("自動売買をONにします。新規シグナル発生時に自動でデモ発注(証拠金50USDT/レバレッジ15倍)されます。よろしいですか？")) return;
   autoTradeEnabled = !autoTradeEnabled;
   var btn = document.getElementById("autoTradeBtn");
-  btn.textContent = autoTradeEnabled ? "🤖 自動売買 ON" : "🤖 自動売買 OFF";
+  btn.textContent = autoTradeEnabled ? "🤖 自動 ON" : "🤖 自動 OFF";
   btn.classList.toggle("on", autoTradeEnabled);
   try { localStorage.setItem("autoTradeEnabled", autoTradeEnabled); } catch(e) {}
 }
@@ -973,7 +973,7 @@ function scanNext() {
 }
 
 if (autoTradeEnabled) {
-  document.getElementById("autoTradeBtn").textContent = "🤖 自動売買 ON";
+  document.getElementById("autoTradeBtn").textContent = "🤖 自動 ON";
   document.getElementById("autoTradeBtn").classList.add("on");
 }
 renderPopular();
