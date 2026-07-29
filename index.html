@@ -130,6 +130,35 @@ var prevPriceMap = {};
 var signalLog = [];
 var autoTradeEnabled = false;
 try { autoTradeEnabled = localStorage.getItem("autoTradeEnabled") === "true"; } catch(e) {}
+var autoPosition = {};
+try { autoPosition = JSON.parse(localStorage.getItem("autoPosition") || "{}"); } catch(e) {}
+function saveAutoPosition() { try { localStorage.setItem("autoPosition", JSON.stringify(autoPosition)); } catch(e) {} }
+
+function disableAutoTrade(reason) {
+  autoTradeEnabled = false;
+  try { localStorage.setItem("autoTradeEnabled", "false"); } catch(e) {}
+  var btn = document.getElementById("autoTradeBtn");
+  if (btn) { btn.textContent = "🤖 自動 OFF"; btn.classList.remove("on"); }
+  showToast("自動売買", "OFFにしました: "+reason, "sell", 6000);
+}
+
+function checkAutoPositions() {
+  var syms = Object.keys(autoPosition);
+  syms.forEach(function(sym) {
+    getJSON(PROXY+"/positions?symbol="+sym).then(function(res) {
+      var list = res && res.data ? res.data : [];
+      var stillOpen = false;
+      for (var i=0; i<list.length; i++) {
+        var p = list[i];
+        var side = (p.positionSide||"").toUpperCase();
+        var amt = parseFloat(p.positionAmt||0);
+        if (side === autoPosition[sym].side && Math.abs(amt) > 0) stillOpen = true;
+      }
+      if (!stillOpen) { delete autoPosition[sym]; saveAutoPosition(); }
+    }).catch(function(){});
+  });
+}
+setInterval(function(){ if (autoTradeEnabled) checkAutoPositions(); }, 60000);
 
 try {
   var saved = localStorage.getItem("pairs3");
@@ -286,14 +315,42 @@ function placeAutoOrder(sym, signal, price) {
   var tpParam = JSON.stringify({type:"TAKE_PROFIT_MARKET", stopPrice: parseFloat(tpPrice.toFixed(6)), price: parseFloat(tpPrice.toFixed(6)), workingType:"MARK_PRICE"});
   var slParam = JSON.stringify({type:"STOP_MARKET", stopPrice: parseFloat(slPrice.toFixed(6)), price: parseFloat(slPrice.toFixed(6)), workingType:"MARK_PRICE"});
 
-  getJSON(PROXY+"/leverage?symbol="+sym+"&side="+positionSide+"&leverage="+leverage).then(function(){
+  return getJSON(PROXY+"/leverage?symbol="+sym+"&side="+positionSide+"&leverage="+leverage).then(function(){
     var url = PROXY+"/order?symbol="+sym+"&side="+side+"&positionSide="+positionSide+"&quantity="+qty+"&takeProfit="+encodeURIComponent(tpParam)+"&stopLoss="+encodeURIComponent(slParam);
     return postJSON(url);
   }).then(function(res){
+    if (res && res.code !== undefined && res.code !== 0) {
+      disableAutoTrade(sym.replace("-","/")+": "+(res.msg||"発注失敗"));
+      return;
+    }
+    autoPosition[sym] = { side: positionSide, qty: qty };
+    saveAutoPosition();
     showToast(sym.replace("-","/"), "自動発注実行: "+signal.type+" 数量:"+qty, signal.type==="BUY"?"buy":"sell", 5000);
   }).catch(function(e){
-    showToast(sym.replace("-","/"), "自動発注失敗: "+e.message, "sell", 5000);
+    disableAutoTrade(sym.replace("-","/")+": "+e.message);
   });
+}
+
+function closeAutoPosition(sym, pos) {
+  var side = pos.side === "LONG" ? "SELL" : "BUY";
+  var url = PROXY+"/order?symbol="+sym+"&side="+side+"&positionSide="+pos.side+"&quantity="+pos.qty+"&reduceOnly=true";
+  return postJSON(url);
+}
+
+function handleAutoSignal(sym, signal, price) {
+  var pos = autoPosition[sym] || null;
+  var desiredSide = signal.type === "BUY" ? "LONG" : "SHORT";
+  if (!pos) {
+    placeAutoOrder(sym, signal, price);
+  } else if (pos.side !== desiredSide) {
+    closeAutoPosition(sym, pos).then(function(){
+      delete autoPosition[sym];
+      saveAutoPosition();
+      placeAutoOrder(sym, signal, price);
+    }).catch(function(e){
+      showToast(sym.replace("-","/"), "決済失敗: "+e.message, "sell", 5000);
+    });
+  }
 }
 
 function showToast(pair, message, type, duration) {
@@ -763,7 +820,9 @@ function fetchAndUpdate(sym) {
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
     if (signal.type!=="HOLD"&&signal.type!==lastSig) {
       addSignalLog(sym,signal,price);
-      if (autoTradeEnabled) placeAutoOrder(sym, signal, price);
+    }
+    if (autoTradeEnabled && signal.type!=="HOLD") {
+      handleAutoSignal(sym, signal, price);
     }
     window["_current_"+sym] = {signal:signal, price:price, bbRate: bb?parseFloat(((bb.upper-bb.lower)/bb.upper*100).toFixed(1)):0, trend:trend};
 
