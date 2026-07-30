@@ -80,7 +80,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
       <option value="1d">1d</option>
     </select>
     <button class="btn-notif" id="autoTradeBtn" onclick="toggleAutoTrade()">🤖 自動 OFF</button>
-    <button class="btn" onclick="toggleLog()">📋 履歴</button>
+    <button class="btn" onclick="toggleTradeHistory()">📋 履歴</button>
     <button class="btn" onclick="toggleAdd()">＋ 追加</button>
     <button class="btn" id="scanBtn" onclick="startScan()">🔍 ｽｷｬﾝ</button>
     <button class="btn" onclick="refreshAll()">🔄 更新</button>
@@ -250,6 +250,32 @@ function renderLog() {
 }
 
 function clearLog() { signalLog = []; saveSignalLog(); renderLog(); }
+
+function toggleTradeHistory() {
+  var existing = document.getElementById("tradeHistoryPanel");
+  if (existing) { existing.remove(); return; }
+  var panel = document.createElement("div");
+  panel.id = "tradeHistoryPanel";
+  panel.className = "log-panel";
+  panel.innerHTML = "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;'><span style='font-weight:700;color:#fff;font-size:15px'>💰 約定履歴(BingX)</span><button class='btn' onclick='document.getElementById(\"tradeHistoryPanel\").remove()' style='font-size:11px;padding:4px 10px;'>閉じる</button></div><div id='tradeHistoryList'>読み込み中...</div>";
+  document.querySelector(".grid").insertAdjacentElement("beforebegin", panel);
+  getJSON(PROXY+"/trade-history?limit=50").then(function(res){
+    var list = document.getElementById("tradeHistoryList");
+    var data = res && res.data && res.data.fill_orders ? res.data.fill_orders : (res && res.data ? res.data : []);
+    if (!data || data.length===0) { list.innerHTML="<div style='color:#444;text-align:center;padding:24px'>約定履歴がありません</div>"; return; }
+    var html="";
+    for (var i=0;i<data.length;i++) {
+      var t=data[i];
+      var side=t.side||"-";
+      var c = side==="BUY" ? "#00e5a0" : "#ff4d6d";
+      var time = t.filledTm || t.time ? new Date(t.filledTm||t.time).toLocaleString("ja-JP") : "-";
+      html += "<div class='log-row'><span style='color:#444;font-size:11px;min-width:110px'>"+time+"</span><span style='color:#fff;font-weight:700;font-size:13px'>"+(t.symbol||"-").replace("-","/")+"</span><span style='color:"+c+";font-weight:800;font-size:13px'>"+side+"</span><span style='color:#888;font-size:12px'>数量:"+(t.qty||t.volume||"-")+"</span><span style='color:#888;font-size:12px'>価格:"+(t.price||"-")+"</span></div>";
+    }
+    list.innerHTML = html;
+  }).catch(function(e){
+    document.getElementById("tradeHistoryList").innerHTML = "<div class='error'>⚠ "+e.message+"</div>";
+  });
+}
 
 function postJSON(url) {
   return new Promise(function(resolve,reject) {
