@@ -33,6 +33,12 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 </div>
 
 <div class="section">
+  <div class="section-title">自動売買設定(デモ)</div>
+  <div class="row"><label>証拠金(USDT)</label><input type="number" id="tradeMargin" step="1"></div>
+  <div class="row"><label>レバレッジ(倍)</label><input type="number" id="tradeLeverage" step="1"></div>
+</div>
+
+<div class="section">
   <div class="section-title">シグナル閾値</div>
   <div class="row"><label>弱</label><input type="number" id="thWeak" step="0.5"></div>
   <div class="row"><label>中</label><input type="number" id="thMid" step="0.5"></div>
@@ -150,6 +156,8 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 </div>
 
 <script>
+var PROXY = "https://bingx-proxy-v83p.onrender.com";
+
 var SETTINGS_DEFAULT = {
   rsiHigh1:85, rsiHigh1Score:-2,
   rsiHigh2:70, rsiHigh2Score:-1,
@@ -181,6 +189,13 @@ function loadValues() {
     var el = document.getElementById(key);
     if (el) el.value = SETTINGS[key];
   }
+  fetch(PROXY+"/trade-settings").then(function(r){return r.json();}).then(function(d){
+    document.getElementById("tradeMargin").value = d.margin;
+    document.getElementById("tradeLeverage").value = d.leverage;
+  }).catch(function(){
+    document.getElementById("tradeMargin").value = 50;
+    document.getElementById("tradeLeverage").value = 15;
+  });
 }
 
 function saveAll() {
@@ -192,6 +207,9 @@ function saveAll() {
       newSettings[key] = isNaN(v) ? SETTINGS_DEFAULT[key] : v;
     }
   }
+  var margin = parseFloat(document.getElementById("tradeMargin").value) || 50;
+  var leverage = parseInt(document.getElementById("tradeLeverage").value) || 15;
+  fetch(PROXY+"/trade-settings?margin="+margin+"&leverage="+leverage, {method:"POST"}).catch(function(){});
   try {
     localStorage.setItem("appSettings", JSON.stringify(newSettings));
     alert("設定を保存しました");
