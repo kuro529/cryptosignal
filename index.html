@@ -1023,6 +1023,8 @@ if (autoTradeEnabled) {
   updateAutoTradeBtn();
   syncWatchlist();
 }
+checkAutoTradeStatus();
+
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
