@@ -250,17 +250,19 @@ function toggleTradeHistory() {
   panel.className = "log-panel";
   panel.innerHTML = "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;'><span style='font-weight:700;color:#fff;font-size:15px'>💰 約定履歴(BingX)</span><button class='btn' onclick='document.getElementById(\"tradeHistoryPanel\").remove()' style='font-size:11px;padding:4px 10px;'>閉じる</button></div><div id='tradeHistoryList'>読み込み中...</div>";
   document.querySelector(".grid").insertAdjacentElement("beforebegin", panel);
-  getJSON(PROXY+"/trade-history?limit=50").then(function(res){
+    getJSON(PROXY+"/trade-history?limit=50").then(function(res){
     var list = document.getElementById("tradeHistoryList");
-    var data = res && res.data && res.data.fill_orders ? res.data.fill_orders : (res && res.data ? res.data : []);
+    var allOrders = res && res.data && res.data.orders ? res.data.orders : [];
+    var data = allOrders.filter(function(o){ return o.status === "FILLED"; });
+    data.sort(function(a,b){ return (b.updateTime||0) - (a.updateTime||0); });
     if (!data || data.length===0) { list.innerHTML="<div style='color:#444;text-align:center;padding:24px'>約定履歴がありません</div>"; return; }
     var html="";
     for (var i=0;i<data.length;i++) {
       var t=data[i];
       var side=t.side||"-";
       var c = side==="BUY" ? "#00e5a0" : "#ff4d6d";
-      var time = t.filledTm || t.time ? new Date(t.filledTm||t.time).toLocaleString("ja-JP") : "-";
-      html += "<div class='log-row'><span style='color:#444;font-size:11px;min-width:110px'>"+time+"</span><span style='color:#fff;font-weight:700;font-size:13px'>"+(t.symbol||"-").replace("-","/")+"</span><span style='color:"+c+";font-weight:800;font-size:13px'>"+side+"</span><span style='color:#888;font-size:12px'>数量:"+(t.qty||t.volume||"-")+"</span><span style='color:#888;font-size:12px'>価格:"+(t.price||"-")+"</span></div>";
+      var time = t.updateTime ? new Date(t.updateTime).toLocaleString("ja-JP") : "-";
+      html += "<div class='log-row'><span style='color:#444;font-size:11px;min-width:110px'>"+time+"</span><span style='color:#fff;font-weight:700;font-size:13px'>"+(t.symbol||"-").replace("-","/")+"</span><span style='color:"+c+";font-weight:800;font-size:13px'>"+side+"</span><span style='color:#888;font-size:12px'>数量:"+(t.executedQty||"-")+"</span><span style='color:#888;font-size:12px'>価格:"+(t.avgPrice||"-")+"</span></div>";
     }
     list.innerHTML = html;
   }).catch(function(e){
