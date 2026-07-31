@@ -1016,8 +1016,8 @@ function scanNext() {
 
 if (autoTradeEnabled) {
   updateAutoTradeBtn();
-  syncWatchlist().catch(function(){});
 }
+
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
