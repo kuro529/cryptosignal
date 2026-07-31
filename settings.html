@@ -39,6 +39,14 @@ body { background: #07070f; color: #dde; font-family: -apple-system, sans-serif;
 </div>
 
 <div class="section">
+  <div class="section-title">TP/SL幅(BB率別、%)</div>
+  <div class="row"><label>BB率50%以上</label><input type="number" id="tpslRate50" step="1"></div>
+  <div class="row"><label>BB率30%以上</label><input type="number" id="tpslRate30" step="1"></div>
+  <div class="row"><label>BB率10%以上</label><input type="number" id="tpslRate10" step="1"></div>
+  <div class="row"><label>BB率10%未満</label><input type="number" id="tpslRateLow" step="1"></div>
+</div>
+
+<div class="section">
   <div class="section-title">シグナル閾値</div>
   <div class="row"><label>弱</label><input type="number" id="thWeak" step="0.5"></div>
   <div class="row"><label>中</label><input type="number" id="thMid" step="0.5"></div>
@@ -172,7 +180,8 @@ var SETTINGS_DEFAULT = {
   frLow1:-0.01, frLow1Score:2,
   frLow2:-0.0001, frLow2Score:1.5,
   frLow3:-0.00005, frLow3Score:1,
-  thWeak:3.5, thMid:5.5, thStrong:7.5
+  thWeak:3.5, thMid:5.5, thStrong:7.5,
+  tpslRate50:10, tpslRate30:8, tpslRate10:6, tpslRateLow:4
 };
 
 var SETTINGS = JSON.parse(JSON.stringify(SETTINGS_DEFAULT));
