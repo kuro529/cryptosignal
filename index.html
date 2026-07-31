@@ -212,8 +212,10 @@ var SETTINGS_DEFAULT = {
   frLow1:-0.01, frLow1Score:2,
   frLow2:-0.0001, frLow2Score:1.5,
   frLow3:-0.00005, frLow3Score:1,
-  thWeak:3.5, thMid:5.5, thStrong:7.5
+  thWeak:3.5, thMid:5.5, thStrong:7.5,
+  tpslRate50:10, tpslRate30:8, tpslRate10:6, tpslRateLow:4
 };
+  
 var SETTINGS = JSON.parse(JSON.stringify(SETTINGS_DEFAULT));
 try {
   var savedSettings = localStorage.getItem("appSettings");
@@ -817,7 +819,7 @@ function fetchAndUpdate(sym) {
     var d=signal.details;
     var detailStr="RSI:"+d.rsi+" BB:"+d.bb+" MACD:"+d.macd+" FR:"+d.fr+" 出来高:"+d.vol+" OI:"+d.oi;
 
-    var tpPct = bbRate >= 50 ? 0.10 : bbRate >= 30 ? 0.08 : bbRate >= 10 ? 0.06 : 0.04;
+    var tpPct = (bbRate >= 50 ? SETTINGS.tpslRate50 : bbRate >= 30 ? SETTINGS.tpslRate30 : bbRate >= 10 ? SETTINGS.tpslRate10 : SETTINGS.tpslRateLow) / 100;
     var slPct = tpPct;
     var isSell = signal.type === "SELL";
     var tp = isSell ? fmtPrice(price*(1-tpPct)) : fmtPrice(price*(1+tpPct));
@@ -839,7 +841,7 @@ function fetchAndUpdate(sym) {
         var hTrend=h.trendScore!==undefined?h.trendScore:0;
         var htColor=hTrend>2?"#ff69b4":hTrend<-2?"#00bcd4":"#8888bb";
         var hbbRate=h.bbRate||0;
-        var htpPct=hbbRate>=50?0.10:hbbRate>=30?0.08:hbbRate>=10?0.06:0.04;
+        var htpPct=(hbbRate>=50?SETTINGS.tpslRate50:hbbRate>=30?SETTINGS.tpslRate30:hbbRate>=10?SETTINGS.tpslRate10:SETTINGS.tpslRateLow)/100;
         var hIsSell=h.signal.type==="SELL";
         var htp=hIsSell?fmtPrice(h.price*(1-htpPct)):fmtPrice(h.price*(1+htpPct));
         var hsl=hIsSell?fmtPrice(h.price*(1+htpPct)):fmtPrice(h.price*(1-htpPct));
