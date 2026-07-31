@@ -131,6 +131,14 @@ var signalLog = [];
 var autoTradeEnabled = false;
 try { autoTradeEnabled = localStorage.getItem("autoTradeEnabled") === "true"; } catch(e) {}
 var lastDisableReason = null;
+var appToken = null;
+
+function getAppToken() {
+  if (appToken) return appToken;
+  var input = prompt("合言葉を入力してください");
+  if (input) appToken = input;
+  return appToken;
+}
 
 try {
   var saved = localStorage.getItem("pairs3");
@@ -232,25 +240,6 @@ function addSignalLog(sym, signal, price) {
   saveSignalLog();
 }
 
-function toggleLog() {
-  var panel = document.getElementById("logPanel");
-  if (panel.classList.contains("hidden")) { panel.classList.remove("hidden"); renderLog(); }
-  else { panel.classList.add("hidden"); }
-}
-
-function renderLog() {
-  var list = document.getElementById("logList");
-  if (signalLog.length === 0) { list.innerHTML = "<div style='color:#444;text-align:center;padding:24px'>まだシグナルがありません</div>"; return; }
-  var html = "";
-  for (var i=0; i<signalLog.length; i++) {
-    var s=signalLog[i], c=s.type==="BUY"?"#00e5a0":"#ff4d6d";
-    html += "<div class='log-row'><span style='color:#444;font-size:11px;min-width:110px'>"+s.time+"</span><span style='color:#fff;font-weight:700;font-size:13px'>"+s.sym+"</span><span style='color:"+c+";font-weight:800;font-size:13px'>"+s.type+"</span>"+(s.strength!=="-"?"<span style='background:"+c+"30;color:"+c+";border-radius:4px;padding:1px 5px;font-size:10px'>"+s.strength+"</span>":"")+"<span style='color:#888;font-size:12px'>"+s.price+"</span><span style='color:#555;font-size:11px'>スコア:"+s.score+"</span></div>";
-  }
-  list.innerHTML = html;
-}
-
-function clearLog() { signalLog = []; saveSignalLog(); renderLog(); }
-
 function toggleTradeHistory() {
   var existing = document.getElementById("tradeHistoryPanel");
   if (existing) { existing.remove(); return; }
@@ -277,6 +266,8 @@ function toggleTradeHistory() {
   });
 }
 
+function clearLog() { signalLog = []; saveSignalLog(); renderLog(); }
+
 function postJSON(url) {
   return new Promise(function(resolve,reject) {
     var xhr=new XMLHttpRequest();
@@ -296,17 +287,21 @@ function updateAutoTradeBtn() {
 }
 
 function syncWatchlist() {
+  var token = getAppToken();
+  if (!token) return Promise.reject(new Error("合言葉が未入力です"));
   var interval = document.getElementById("intervalSelect").value;
   var symbols = pairs.join(",");
   var settingsStr = encodeURIComponent(JSON.stringify(SETTINGS));
-  return postJSON(PROXY+"/watchlist?symbols="+encodeURIComponent(symbols)+"&interval="+interval+"&settings="+settingsStr);
+  return postJSON(PROXY+"/watchlist?symbols="+encodeURIComponent(symbols)+"&interval="+interval+"&settings="+settingsStr+"&token="+encodeURIComponent(token));
 }
 
 function toggleAutoTrade() {
   if (!autoTradeEnabled) {
     if (!confirm("自動売買をONにします。サーバー側で常時監視し、新規シグナル発生時に自動でデモ発注(証拠金50USDT/レバレッジ15倍)されます。アプリを閉じても動作し続けます。よろしいですか？")) return;
+    var token = getAppToken();
+    if (!token) return;
     syncWatchlist().then(function(){
-      return postJSON(PROXY+"/autotrade?enabled=true");
+      return postJSON(PROXY+"/autotrade?enabled=true&token="+encodeURIComponent(token));
     }).then(function(){
       autoTradeEnabled = true;
       try { localStorage.setItem("autoTradeEnabled","true"); } catch(e) {}
@@ -316,7 +311,9 @@ function toggleAutoTrade() {
       showToast("自動売買", "ON失敗: "+e.message, "sell", 5000);
     });
   } else {
-    postJSON(PROXY+"/autotrade?enabled=false").then(function(){
+    var token = getAppToken();
+    if (!token) return;
+    postJSON(PROXY+"/autotrade?enabled=false&token="+encodeURIComponent(token)).then(function(){
       autoTradeEnabled = false;
       try { localStorage.setItem("autoTradeEnabled","false"); } catch(e) {}
       updateAutoTradeBtn();
@@ -1023,8 +1020,6 @@ if (autoTradeEnabled) {
   updateAutoTradeBtn();
   syncWatchlist();
 }
-checkAutoTradeStatus();
-
 renderPopular();
 for(var i=0;i<pairs.length;i++){
   renderCard(pairs[i]);
