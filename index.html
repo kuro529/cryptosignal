@@ -369,16 +369,14 @@ function removePopularBtn(sym) {
 }
 
 function togglePair(sym) {
-  if (pairs.indexOf(sym)>=0) { removePair(sym); }
-  else {
-    pairs.unshift(sym); savePairs(); savePopular();
-    renderCard(sym);
-    var grid=document.getElementById("grid");
-    var card=document.getElementById("card-"+sym);
-    grid.insertBefore(card,grid.firstChild);
-    loadCard(sym); renderPopular();
-    if (autoTradeEnabled) syncWatchlist();
-  }
+  if (pairs.indexOf(sym)>=0) { removePair(sym); return; }
+  pairs.unshift(sym); savePairs(); savePopular();
+  renderCard(sym);
+  var grid=document.getElementById("grid");
+  var card=document.getElementById("card-"+sym);
+  grid.insertBefore(card,grid.firstChild);
+  loadCard(sym); renderPopular();
+  if (autoTradeEnabled) syncWatchlist().catch(function(){});
 }
 
 function toggleAdd() {
@@ -399,7 +397,7 @@ function addPairFromInput() {
     var card=document.getElementById("card-"+sym);
     grid.insertBefore(card,grid.firstChild);
     loadCard(sym); renderPopular();
-    if (autoTradeEnabled) syncWatchlist();
+    if (autoTradeEnabled) syncWatchlist().catch(function(){});
   }
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
@@ -936,7 +934,7 @@ function removePair(sym) {
   delete trendHistoryMap[sym];
   var card=document.getElementById("card-"+sym); if(card) card.parentNode.removeChild(card);
   renderPopular();
-  if (autoTradeEnabled) syncWatchlist();
+  if (autoTradeEnabled) syncWatchlist().catch(function(){});
 }
 
 function loadCard(sym) {
@@ -954,7 +952,7 @@ function loadCard(sym) {
 document.getElementById("intervalSelect").addEventListener("change",function(){
   for(var k in timers) clearInterval(timers[k]); timers={};
   for(var i=0;i<pairs.length;i++) loadCard(pairs[i]);
-  if (autoTradeEnabled) syncWatchlist();
+  if (autoTradeEnabled) syncWatchlist().catch(function(){});
 });
 
 var scanQueue=[],scanResults=[],scanIndex=0,scanTotal=0;
@@ -986,7 +984,7 @@ function scanNext() {
           loadCard(sym); renderPopular();
         }
       });
-      if (autoTradeEnabled) syncWatchlist();
+      if (autoTradeEnabled) syncWatchlist().catch(function(){});
     }
     return;
   }
@@ -1018,7 +1016,7 @@ function scanNext() {
 
 if (autoTradeEnabled) {
   updateAutoTradeBtn();
-  syncWatchlist();
+  syncWatchlist().catch(function(){});
 }
 renderPopular();
 for(var i=0;i<pairs.length;i++){
