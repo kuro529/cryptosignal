@@ -63,6 +63,7 @@ select { background: #0d0d1a; border: 1px solid #222236; color: #aaa; border-rad
 .btn-close { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #ff8c0044; background: #ff8c0010; color: #ff8c00; font-size: 12px; cursor: pointer; margin-top: 4px; white-space: nowrap; }
 .btn-edit-pos { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #5577ff44; background: #5577ff10; color: #5577ff; font-size: 12px; cursor: pointer; margin-top: 4px; white-space: nowrap; }
 .position-action-row { display: flex; gap: 6px; }
+.auto-flag { color: #ffcc00; font-size: 13px; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -132,6 +133,10 @@ var autoTradeEnabled = false;
 try { autoTradeEnabled = localStorage.getItem("autoTradeEnabled") === "true"; } catch(e) {}
 var lastDisableReason = null;
 var appToken = null;
+
+var autoAddedPairs = [];
+try { autoAddedPairs = JSON.parse(localStorage.getItem("autoAddedPairs") || "[]"); } catch(e) {}
+function saveAutoAddedPairs() { try { localStorage.setItem("autoAddedPairs", JSON.stringify(autoAddedPairs)); } catch(e) {} }
 
 function getAppToken() {
   if (appToken) return appToken;
@@ -292,7 +297,7 @@ function updateAutoTradeBtn() {
 
 function syncWatchlist() {
   var interval = document.getElementById("intervalSelect").value;
-  var symbols = pairs.join(",");
+  var symbols = POPULAR.join(",");
   var settingsStr = encodeURIComponent(JSON.stringify(SETTINGS));
   return postJSON(PROXY+"/watchlist?symbols="+encodeURIComponent(symbols)+"&interval="+interval+"&settings="+settingsStr);
 }
@@ -334,6 +339,48 @@ function checkAutoTradeStatus() {
         lastDisableReason = res.reason;
       }
     }
+    var activeList = res.active_positions || [];
+    var activeSyms = activeList.map(function(p){ return p.symbol; });
+
+    activeList.forEach(function(p){
+      var sym = p.symbol;
+      if (pairs.indexOf(sym) < 0) {
+        pairs.unshift(sym); savePairs();
+        renderCard(sym);
+        var grid=document.getElementById("grid");
+        var card=document.getElementById("card-"+sym);
+        grid.insertBefore(card,grid.firstChild);
+        loadCard(sym); renderPopular();
+        showToast(sym.replace("-","/"), "自動売買でポジション保有中、カードに追加しました", "buy", 5000);
+      }
+      if (autoAddedPairs.indexOf(sym) < 0) {
+        autoAddedPairs.push(sym); saveAutoAddedPairs();
+      }
+      if (!positions[sym] || positions[sym].auto) {
+        positions[sym] = {
+          dir: p.side === "LONG" ? "ロング" : "ショート",
+          entryPrice: p.entry_price,
+          qty: p.qty,
+          time: positions[sym] ? positions[sym].time : new Date().toLocaleString("ja-JP"),
+          auto: true
+        };
+        savePositions();
+      }
+    });
+
+    autoAddedPairs.slice().forEach(function(sym){
+      if (activeSyms.indexOf(sym) < 0) {
+        autoAddedPairs.splice(autoAddedPairs.indexOf(sym), 1);
+        saveAutoAddedPairs();
+        if (positions[sym] && positions[sym].auto) {
+          delete positions[sym];
+          savePositions();
+        }
+        if (pairs.indexOf(sym) >= 0) {
+          removePair(sym);
+        }
+      }
+    });
   }).catch(function(){});
 }
 setInterval(checkAutoTradeStatus, 30000);
@@ -378,7 +425,6 @@ function togglePair(sym) {
   var card=document.getElementById("card-"+sym);
   grid.insertBefore(card,grid.firstChild);
   loadCard(sym); renderPopular();
-  if (autoTradeEnabled) syncWatchlist().catch(function(){});
 }
 
 function toggleAdd() {
@@ -399,7 +445,6 @@ function addPairFromInput() {
     var card=document.getElementById("card-"+sym);
     grid.insertBefore(card,grid.firstChild);
     loadCard(sym); renderPopular();
-    if (autoTradeEnabled) syncWatchlist().catch(function(){});
   }
   input.value = ""; document.getElementById("addBar").classList.add("hidden");
 }
@@ -888,10 +933,13 @@ function fetchAndUpdate(sym) {
         "<div class='position-row'><span style='color:#888'>損益</span><span style='color:"+pnlColor+";font-weight:700'>"+(pnl>=0?"+":"")+pnl.toFixed(2)+" USDT</span></div>";
     }
 
+    var isAuto = autoAddedPairs.indexOf(sym) >= 0;
+    var autoFlagHtml = isAuto ? "<span class='auto-flag' title='自動売買中'>🤖</span>" : "";
+
     card.innerHTML=
       "<div class='card-header'>"+
         "<div>"+
-          "<div class='pair-name'>"+sym.replace("-","/")+" <button onclick='fetchAndUpdate(\""+sym+"\")' style='background:none;border:none;color:#5577ff;font-size:13px;cursor:pointer;padding:0;vertical-align:middle'>🔄</button></div>"+
+          "<div class='pair-name'>"+sym.replace("-","/")+" <button onclick='fetchAndUpdate(\""+sym+"\")' style='background:none;border:none;color:#5577ff;font-size:13px;cursor:pointer;padding:0;vertical-align:middle'>🔄</button>"+autoFlagHtml+"</div>"+
           "<div style='color:"+chgColor+";font-size:12px'>"+(change>=0?"▲":"▼")+" "+Math.abs(change).toFixed(2)+"% (24h)</div>"+
           positionBtnsHtml+
         "</div>"+
@@ -941,7 +989,6 @@ function removePair(sym) {
   delete trendHistoryMap[sym];
   var card=document.getElementById("card-"+sym); if(card) card.parentNode.removeChild(card);
   renderPopular();
-  if (autoTradeEnabled) syncWatchlist().catch(function(){});
 }
 
 function loadCard(sym) {
@@ -991,7 +1038,6 @@ function scanNext() {
           loadCard(sym); renderPopular();
         }
       });
-      if (autoTradeEnabled) syncWatchlist().catch(function(){});
     }
     return;
   }
