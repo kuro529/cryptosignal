@@ -294,7 +294,7 @@ function syncWatchlist() {
   var interval = document.getElementById("intervalSelect").value;
   var symbols = pairs.join(",");
   var settingsStr = encodeURIComponent(JSON.stringify(SETTINGS));
-  return postJSON(PROXY+"/watchlist?symbols="+encodeURIComponent(symbols)+"&interval="+interval+"&settings="+settingsStr+"&token="+encodeURIComponent(token));
+  return postJSON(PROXY+"/watchlist?symbols="+encodeURIComponent(symbols)+"&interval="+interval+"&settings="+settingsStr);
 }
 
 function toggleAutoTrade() {
