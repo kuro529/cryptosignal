@@ -291,8 +291,6 @@ function updateAutoTradeBtn() {
 }
 
 function syncWatchlist() {
-  var token = getAppToken();
-  if (!token) return Promise.reject(new Error("合言葉が未入力です"));
   var interval = document.getElementById("intervalSelect").value;
   var symbols = pairs.join(",");
   var settingsStr = encodeURIComponent(JSON.stringify(SETTINGS));
