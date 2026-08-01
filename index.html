@@ -800,6 +800,11 @@ function fetchAndUpdate(sym) {
     var signal=calcScore(closes, volumes, price, fundingRate, oi, prevOi);
     var rsi=signal.rsi, bb=signal.bb, macd=signal.macd;
     var trend=calcTrendIndex(closes, highs, lows, sym, interval);
+    var holdSub = null;
+    if (signal.type === "HOLD") {
+      var combined = signal.score + trend.score;
+      holdSub = combined > 0 ? "HOLD+" : combined < 0 ? "HOLD-" : "HOLD";
+    }
 
     if (!histories[sym]) histories[sym]=[];
     var lastSig=histories[sym][0]?histories[sym][0].signal.type:null;
@@ -905,8 +910,8 @@ function fetchAndUpdate(sym) {
           "</div>"+
         "</div>"+
       "</div>"+
-      "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
-        "<span class='badge-type'>"+signal.type+"</span>"+
+        "<div class='badge' style='background:"+sigColor+"18;border:1px solid "+sigColor+"44;color:"+sigColor+"'>"+
+        "<span class='badge-type'>"+(signal.type==="HOLD"&&holdSub?holdSub:signal.type)+"</span>"+
         (signal.strength!=="-"?"<span class='badge-strength' style='background:"+sigColor+"30'>"+signal.strength+"</span>":"")+
         "<span style='background:"+(signal.score>=SETTINGS.thWeak?"#00e5a030":signal.score<=-SETTINGS.thWeak?"#ff4d6d30":"#5577ff30")+";color:"+(signal.score>=SETTINGS.thWeak?"#00e5a0":signal.score<=-SETTINGS.thWeak?"#ff4d6d":"#5577ff")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>スコア:"+signal.score+"</span>"+
         "<span style='background:"+(trend.score>2?"#ff69b430":trend.score<-2?"#00bcd430":"#8888bb30")+";color:"+(trend.score>2?"#ff69b4":trend.score<-2?"#00bcd4":"#8888bb")+";border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px'>トレンド:"+trend.score+"</span>"+
