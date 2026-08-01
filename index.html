@@ -1069,6 +1069,7 @@ function scanNext() {
 
 if (autoTradeEnabled) {
   updateAutoTradeBtn();
+  syncWatchlist().catch(function(){});
 }
 
 renderPopular();
