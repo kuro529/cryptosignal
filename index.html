@@ -349,9 +349,14 @@ function calcRSIPrev(closes) { return calcRSIAt(closes, closes.length-2); }
 
 function calcRSIAvg14(closes) {
   var period=14;
-  if (closes.length<period) return null;
-  var slice=closes.slice(-period);
-  return slice.reduce(function(a,b){return a+b;},0)/period;
+  var vals=[];
+  for (var i=closes.length-period; i<closes.length; i++) {
+    if (i<0) continue;
+    var v=calcRSIAt(closes,i);
+    if (v!==null) vals.push(v);
+  }
+  if (vals.length===0) return null;
+  return vals.reduce(function(a,b){return a+b;},0)/vals.length;
 }
 
 function calcBB(closes) {
